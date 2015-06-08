@@ -1,0 +1,9 @@
+{
+  "host": "0.0.0.0",
+  "port": 8080,
+  "silent": false,
+  "repl": true,
+  "tls": false,
+  "key": "your.key",
+  "cert": "your.crt"
+}

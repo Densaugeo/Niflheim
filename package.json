@@ -1,0 +1,30 @@
+{
+  "name": "newserver",
+  "version": "0.0.0",
+  "description": "My new template server",
+  "main": "server.js",
+  "scripts": {
+    "test": "N/A"
+  },
+  "repository": {
+    "type": "git",
+    "url": "N/A"
+  },
+  "keywords": [
+    "i",
+    "can",
+    "has",
+    "no",
+    "keywords"
+  ],
+  "author": "Densaugeo",
+  "license": "MIT",
+  "dependencies": {
+    "hapi": "~8.6.0",
+    "ws": "~0.7.2",
+    "good-file": "~5.0.1",
+    "good": "~6.1.4",
+    "good-console": "~5.0.1",
+    "moment": "~2.10.3"
+  }
+}
