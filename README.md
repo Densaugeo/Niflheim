@@ -1,5 +1,7 @@
 # Niflheim
 
+[![Code Climate](https://codeclimate.com/github/Densaugeo/Niflheim/badges/gpa.svg)](https://codeclimate.com/github/Densaugeo/Niflheim)
+
 Make ssl certificates:
 
 ~~~
