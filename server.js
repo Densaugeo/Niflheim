@@ -92,6 +92,35 @@ server.register({
   }
 }, function () {});
 
+////////////////////////////
+// World contruction area //
+////////////////////////////
+
+var Region = function Region(options) {
+  // @prop Number width -- Width of Region in Cells (1 to 1024)
+  this.width  = Math.min(Math.max(Number(options.width  || 0), 1), 1024);
+  
+  // @prop Number height -- Height of Region in Cells (1 to 1024)
+  this.height = Math.min(Math.max(Number(options.height || 0), 1), 1024);
+  
+  for(var i = 0, endi = this.width; i < endi; ++i) {
+    this[i] = new Array(this.height);
+    
+    for(var j = 0, endj = this.heigth; j < endj; ++j) {
+      this[i][j] = {};
+    }
+  }
+}
+Region.prototype = Object.create(Array.prototype);
+Region.prototype.constructor = Region;
+
+var aRegion = new Region({width: 12, height: 12});
+
+var Cell = function Cell(options) {
+  // @prop ? terrain
+  this.terrain = 'some terrain';
+}
+
 //////////
 // REPL //
 //////////
@@ -110,4 +139,8 @@ if(options.repl) {
   cli.context.server             = server;
   cli.context.wsServer           = wsServer;
   cli.context.cli                = cli;
+  
+  // World construction stuff
+  cli.context.Region  = Region;
+  cli.context.aRegion = aRegion;
 }
