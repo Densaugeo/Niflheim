@@ -27,7 +27,7 @@ try {
 }
 
 // Logger - Prints to stdout with timestamp, unless silenced by option. Add log file support?
-var log = options.silent ? function(){} : function(message){console.log(moment.utc(Date.now()).format('YYMMDD/HHmmss.SSS') + ', ' + message);};
+var log = options.silent ? function(){} : function(message){console.log(moment.utc(Date.now()).format('YYMMDD/HHmmss.SSS') + ', ' + message)};
 
 /////////////////
 // HTTP Server //
