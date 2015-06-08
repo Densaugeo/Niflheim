@@ -2,8 +2,7 @@
 
 Make ssl certificates:
 
-
-
+~~~
 # Generate private key
 openssl genrsa --out test.key 1024
 
@@ -18,3 +17,4 @@ openssl req -new -sha256 -key test.key -out test.csr
 
 # Sign CSR with its own private key
 openssl x509 -req -sha256 -days 365 -in test.csr -out test.crt -signkey test.key
+~~~
