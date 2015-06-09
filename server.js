@@ -20,8 +20,8 @@ try {
   
   try {
     options = JSON.parse(fs.readFileSync(__dirname + '/default_config.json'));
-  } catch(e) {
-    console.log('Error: Unable to read config file "' + __dirname + '/default-config.json". (' + e + ')');
+  } catch(f) {
+    console.log('Error: Unable to read config file "' + __dirname + '/default-config.json". (' + f + ')');
     process.exit(1);
   }
 }
