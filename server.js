@@ -98,10 +98,10 @@ server.register({
 
 var Region = function Region(options) {
   // @prop Number width -- Width of Region in Cells (1 to 1024)
-  this.width  = Math.min(Math.max(Number(options.width  || 0), 1), 1024);
+  this.width  = Math.min(Math.max(Number(options.width ) || 0, 1), 1024);
   
   // @prop Number height -- Height of Region in Cells (1 to 1024)
-  this.height = Math.min(Math.max(Number(options.height || 0), 1), 1024);
+  this.height = Math.min(Math.max(Number(options.height) || 0, 1), 1024);
   
   for(var i = 0, endi = this.width; i < endi; ++i) {
     this[i] = new Array(this.height);
@@ -119,6 +119,13 @@ var aRegion = new Region({width: 12, height: 12});
 var Cell = function Cell(options) {
   // @prop ? terrain
   this.terrain = 'some terrain';
+}
+
+var Terrain = function Terrain(options) {
+  // @prop String char -- Char for roguellike display
+  this.char = String(options.char || ' ')[0];
+  
+  // this.
 }
 
 //////////
