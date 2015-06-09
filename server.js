@@ -27,7 +27,7 @@ try {
 }
 
 // Logger - Prints to stdout with timestamp, unless silenced by option. Add log file support?
-var log = options.silent ? function(){} : function(message){console.log(moment.utc(Date.now()).format('YYMMDD/HHmmss.SSS') + ', ' + message)};
+var log = options.silent ? function(){} : function(message){'use strict';console.log(moment.utc(Date.now()).format('YYMMDD/HHmmss.SSS') + ', ' + message)};
 
 /////////////////
 // HTTP Server //
@@ -56,6 +56,8 @@ server.route({
 });
 
 server.start(function () {
+  'use strict';
+  
   log('Server running at: ' + server.info.uri);
 });
 
@@ -66,6 +68,8 @@ server.start(function () {
 var wsServer = new ws.Server({server: server.listener, path: '/'});
 
 wsServer.on('connection', function(connection) {
+  'use strict';
+  
   log('Received WebSocket');
   
   connection.on('message', function(message) {
@@ -97,6 +101,7 @@ server.register({
 ////////////////////////////
 
 var Region = function Region(options) {
+  'use strict';
   // @prop Number width -- Width of Region in Cells (1 to 1024)
   this.width  = Math.min(Math.max(Number(options.width ) || 0, 1), 1024);
   
@@ -117,11 +122,13 @@ Region.prototype.constructor = Region;
 var aRegion = new Region({width: 12, height: 12});
 
 var Cell = function Cell(options) {
+  'use strict';
   // @prop ? terrain
   this.terrain = 'some terrain';
 }
 
 var Terrain = function Terrain(options) {
+  'use strict';
   // @prop String char -- Char for roguellike display
   this.char = String(options.char || ' ')[0];
   
