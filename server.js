@@ -87,7 +87,7 @@ server.register({
     opsInterval: 15000,
     reporters: [{
       reporter: require('good-console'),
-      events: options.silent ? {error: '*'} : {error: '*', log: '*', response: '*', ops: '*'}
+      events: options.silent ? {error: '*'} : {error: '*', log: '*', response: '*'/*, ops: '*'*/}
     }]
   }
 }, function () {});
@@ -95,6 +95,60 @@ server.register({
 ////////////////////////////
 // World contruction area //
 ////////////////////////////
+
+var Particle = function Particle(options) {
+  // @prop String name -- Common name
+  this.name = String(options.name);
+  
+  // @prop String char -- Char for roguellike display
+  this.char = String(options.char || ' ')[0];
+  
+  // @prop Number color -- 32-bit color, R-G-B-A from most to least significant
+  this.color = (options.color & 0xFFFFFFFF) >>> 0;
+  
+  // @prop Boolean pauli -- No more than one Pauli particle per Cell
+  this.pauli = Boolean(options.pauli);
+}
+
+var Terrain = function Terrain(options) {
+  Particle.call(this, options);
+  
+  // @prop Number type -- 32-bit type identifier
+  this.type = (options.type & 0xFFFFFFFF) >>> 0;
+}
+Terrain.prototype = Object.create(Particle.prototype);
+Terrain.prototype.constructor = Terrain;
+
+var terrainLibrary = [
+  new Terrain({name: 'grass', char: '.', color: 0x00FF00FF, pauli: false, type: 0}),
+  new Terrain({name: 'water', char: '~', color: 0x0000FFFF, pauli: true , type: 1}),
+  new Terrain({name: 'tree' , char: 'T', color: 0x008000FF, pauli: false, type: 2}),
+];
+
+var Agent = function Agent(options) {
+  Particle.call(this, options);
+  
+  // @prop Number type -- 32-bit type identifier
+  this.type = (options.type & 0xFFFFFFFF) >>> 0;
+  
+  
+}
+Agent.prototype = Object.create(Particle.prototype);
+Agent.prototype.constructor = Agent;
+
+var terrainLibrary = [
+  new Agent({name: 'Gremlin', char: 'g', color: 0x0000FFFF, pauli: true , type: 0}),
+];
+
+var Cell = function Cell(options) {
+  // @prop Terrain terrain -- Pointer to a Terrain
+  this.terrain = options.terrain;
+}
+
+// @method proto Boolean pauli() -- True if Cell has at least one Pauli Particle
+Cell.prototype.pauli = function pauli() {
+  return this.terrain.pauli;
+}
 
 var Region = function Region(options) {
   // @prop Number width -- Width of Region in Cells (1 to 1024)
@@ -106,8 +160,8 @@ var Region = function Region(options) {
   for(var i = 0, endi = this.width; i < endi; ++i) {
     this[i] = new Array(this.height);
     
-    for(var j = 0, endj = this.heigth; j < endj; ++j) {
-      this[i][j] = {};
+    for(var j = 0, endj = this.height; j < endj; ++j) {
+      this[i][j] = new Cell({terrain: terrainLibrary[0]});
     }
   }
 }
@@ -115,18 +169,6 @@ Region.prototype = Object.create(Array.prototype);
 Region.prototype.constructor = Region;
 
 var aRegion = new Region({width: 12, height: 12});
-
-var Cell = function Cell(options) {
-  // @prop ? terrain
-  this.terrain = 'some terrain';
-}
-
-var Terrain = function Terrain(options) {
-  // @prop String char -- Char for roguellike display
-  this.char = String(options.char || ' ')[0];
-  
-  // this.
-}
 
 //////////
 // REPL //
@@ -148,6 +190,10 @@ if(options.repl) {
   cli.context.cli                = cli;
   
   // World construction stuff
+  cli.context.Particle  = Particle;
+  cli.context.Terrain  = Terrain;
+  cli.context.Cell  = Cell;
   cli.context.Region  = Region;
   cli.context.aRegion = aRegion;
+  cli.context.terrainLibrary = terrainLibrary;
 }
