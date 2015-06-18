@@ -5,6 +5,7 @@ var fs      = require('fs');
 var hapi    = require('hapi');
 var ws      = require('ws');
 var moment  = require('moment');
+var zmq = require('zmq');
 
 //////////////
 // Settings //
@@ -26,7 +27,7 @@ try {
   }
 }
 
-// Logger - Prints to stdout with timestamp, unless silenced by option. Add log file support?
+// Logger - Prints to stdout with timestamp, unless silenced by option
 var log = options.silent ? function(){} : function(message){console.log(moment.utc(Date.now()).format('YYMMDD/HHmmss.SSS') + ', ' + message)};
 
 /////////////////
@@ -69,7 +70,16 @@ wsServer.on('connection', function(connection) {
   log('Received WebSocket');
   
   connection.on('message', function(message) {
-    log('Received message: ' + message);
+    var object = JSON.parse(message);
+    
+    switch(object.req) {
+      case 'region':
+        connection.send(cache.regionPrefixed);
+        break;
+      case 'region-agents':
+        connection.send(cache.agentsPrefixed);
+        break;
+    }
   });
   
   connection.on('close', function() {
@@ -87,88 +97,57 @@ server.register({
     opsInterval: 15000,
     reporters: [{
       reporter: require('good-console'),
-      events: options.silent ? {error: '*'} : {error: '*', log: '*', response: '*'/*, ops: '*'*/}
+      events: options.silent ? {error: '*'} : {error: '*', log: '*', response: '*', ops: '*'}
     }]
   }
 }, function () {});
 
-////////////////////////////
-// World contruction area //
-////////////////////////////
+// Link to region //
 
-var Particle = function Particle(options) {
-  // @prop String name -- Common name
-  this.name = String(options.name);
-  
-  // @prop String char -- Char for roguellike display
-  this.char = String(options.char || ' ')[0];
-  
-  // @prop Number color -- 32-bit color, R-G-B-A from most to least significant
-  this.color = (options.color & 0xFFFFFFFF) >>> 0;
-  
-  // @prop Boolean pauli -- No more than one Pauli particle per Cell
-  this.pauli = Boolean(options.pauli);
-}
+var cache = {};
+cache.agentsPrefix = Buffer([0]);
+cache.agentsPrefixed = Buffer(0);
+cache.regionPrefix = Buffer([1]);
+cache.regionPrefixed = Buffer(0);
 
-var Terrain = function Terrain(options) {
-  Particle.call(this, options);
-  
-  // @prop Number type -- 32-bit type identifier
-  this.type = (options.type & 0xFFFFFFFF) >>> 0;
-}
-Terrain.prototype = Object.create(Particle.prototype);
-Terrain.prototype.constructor = Terrain;
+var updatePrefix = Buffer([2]);
 
-var terrainLibrary = [
-  new Terrain({name: 'grass', char: '.', color: 0x00FF00FF, pauli: false, type: 0}),
-  new Terrain({name: 'water', char: '~', color: 0x0000FFFF, pauli: true , type: 1}),
-  new Terrain({name: 'tree' , char: 'T', color: 0x008000FF, pauli: false, type: 2}),
-];
+var simSubscriber = zmq.socket('sub');
+simSubscriber.connect('tcp://127.0.0.1:3000');
+simSubscriber.subscribe('cell');
 
-var Agent = function Agent(options) {
-  Particle.call(this, options);
-  
-  // @prop Number type -- 32-bit type identifier
-  this.type = (options.type & 0xFFFFFFFF) >>> 0;
-  
-  
-}
-Agent.prototype = Object.create(Particle.prototype);
-Agent.prototype.constructor = Agent;
+console.log('Subscriber connected to port 3000');
 
-var terrainLibrary = [
-  new Agent({name: 'Gremlin', char: 'g', color: 0x0000FFFF, pauli: true , type: 0}),
-];
+simSubscriber.on('message', function(topic, message) {
+  wsServer.clients.forEach(function(v) {
+    v.send(Buffer.concat([updatePrefix, message]));
+  });
+});
 
-var Cell = function Cell(options) {
-  // @prop Terrain terrain -- Pointer to a Terrain
-  this.terrain = options.terrain;
-}
+var agentsCacheRequester = zmq.socket('req');
+agentsCacheRequester.connect('tcp://127.0.0.1:3001');
 
-// @method proto Boolean pauli() -- True if Cell has at least one Pauli Particle
-Cell.prototype.pauli = function pauli() {
-  return this.terrain.pauli;
-}
+agentsCacheRequester.on('message', function(message) {
+  cache.agentsPrefixed = Buffer.concat([cache.agentsPrefix, message]);
+});
 
-var Region = function Region(options) {
-  // @prop Number width -- Width of Region in Cells (1 to 1024)
-  this.width  = Math.min(Math.max(Number(options.width ) || 0, 1), 1024);
+agentsCacheRequester.send('region-agents');
+
+var regionCacheRequester = zmq.socket('req');
+regionCacheRequester.connect('tcp://127.0.0.1:3001');
+
+regionCacheRequester.on('message', function(message) {
+  cache.regionPrefixed = Buffer.concat([cache.regionPrefix, message]);
   
-  // @prop Number height -- Height of Region in Cells (1 to 1024)
-  this.height = Math.min(Math.max(Number(options.height) || 0, 1), 1024);
-  
-  for(var i = 0, endi = this.width; i < endi; ++i) {
-    this[i] = new Array(this.height);
+  simSubscriber.on('message', function(topic, message) {
+    var x = message.readUInt16LE(0);
+    var y = message.readUInt16LE(2);
     
-    for(var j = 0, endj = this.height; j < endj; ++j) {
-      this[i][j] = new Cell({terrain: terrainLibrary[0]});
-    }
-  }
-}
-Region.prototype = Object.create(Array.prototype);
-Region.prototype.constructor = Region;
+    message.copy(cache.regionPrefixed, cache.regionPrefix.length + 13*(y + x*12));
+  });
+});
 
-var aRegion = new Region({width: 12, height: 12});
+regionCacheRequester.send('region');
 
 //////////
 // REPL //
@@ -182,6 +161,7 @@ if(options.repl) {
   cli.context.hapi               = hapi;
   cli.context.ws                 = ws;
   cli.context.moment             = moment;
+  cli.context.zmq             = zmq;
   
   cli.context.options            = options;
   cli.context.log                = log;
@@ -189,11 +169,5 @@ if(options.repl) {
   cli.context.wsServer           = wsServer;
   cli.context.cli                = cli;
   
-  // World construction stuff
-  cli.context.Particle  = Particle;
-  cli.context.Terrain  = Terrain;
-  cli.context.Cell  = Cell;
-  cli.context.Region  = Region;
-  cli.context.aRegion = aRegion;
-  cli.context.terrainLibrary = terrainLibrary;
+  cli.context.cache = cache;
 }
