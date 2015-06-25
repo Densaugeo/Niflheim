@@ -22,3 +22,16 @@ openssl req -new -sha256 -key test.key -out test.csr
 # Sign CSR with its own private key
 openssl x509 -req -sha256 -days 365 -in test.csr -out test.crt -signkey test.key
 ~~~
+
+Compile Rust parts:
+
+~~~
+# Install Rust
+yum install rustc
+
+# Install Rust dependencies
+cargo build
+
+# May need to add environment variable for cargo to run
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+# or add LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib to ~/.bash_profile

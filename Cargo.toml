@@ -1,0 +1,13 @@
+[package]
+
+name = "sim"
+version = "0.0.1"
+authors = [ "Densaugeo <foo@bar.com>" ]
+
+[dependencies]
+
+rand = "0.3.*"
+
+[dependencies.zmq]
+
+git = "https://github.com/erickt/rust-zmq.git"
