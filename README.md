@@ -23,11 +23,23 @@ openssl req -new -sha256 -key test.key -out test.csr
 openssl x509 -req -sha256 -days 365 -in test.csr -out test.crt -signkey test.key
 ~~~
 
+ZeroMQ version 3 (not 2) is required before install npm or Rust dependencies
+
+~~~
+sudo yum install zeromq3-devel
+~~~
+
 Compile Rust parts:
 
 ~~~
 # Install Rust
-yum install rustc
+# Download .tar from http://www.rust-lang.org/install.html for your platform
+# Extract
+tar -xzf rust-*.tar.gz
+# Run install script
+sudo ./rust-*/install.sh
+# The temporary install folder can be removed
+rm -rf ./rust-*/
 
 # Install Rust dependencies
 cargo build
