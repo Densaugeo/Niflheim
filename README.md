@@ -35,3 +35,4 @@ cargo build
 # May need to add environment variable for cargo to run
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
 # or add LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib to ~/.bash_profile
+~~~
