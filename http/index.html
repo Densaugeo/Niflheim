@@ -37,6 +37,7 @@ if(top !== self) {
 <script type="text/javascript" src="/lib/draggabilly.pkgd.min.js"></script>
 <script type="text/javascript" src="/lib/DF.js"></script>
 <script type="text/javascript" src="/lib/PanelUI/PanelUI.js"></script>
+<script type="text/javascript" src="/EndianArray.js"></script>
 
 <script type="text/javascript" src="/Particles.js"></script>
 <script type="text/javascript" src="/lib/Hermes.js"></script>
@@ -145,14 +146,6 @@ if(localStorage.contrast === 'light') {
 // WebSocket //
 ///////////////
 
-Uint8Array.prototype.readUInt32LE = function(offset) {
-  return 0x1000000*this[offset + 3] + 0x10000*this[offset + 2] + 0x100*this[offset + 1] + this[offset];
-}
-
-Uint8Array.prototype.readUInt16LE = function(offset) {
-  return 0x100*this[offset + 1] + this[offset];
-}
-
 var regionProperties = {
   width: 0,
   height: 0,
@@ -169,7 +162,7 @@ for(var i = 0, endi = 32; i < endi; ++i) {
 }
 
 var drawCell = function(x, y, cell) {
-  var graphic = cell.agentID === undefined ? cell : cache.agents[cell.agentID];
+  var graphic = cell.hasAgent ? cache.agents[cell.agentID].species : cell.terrain;
   
   ctx.hermesRedraw(graphic.char, 2 + 8*x, 2 + 12*y, 1, graphic.color);
 }
@@ -193,17 +186,9 @@ var wsMessageHandler = function(e) {
         case 0: // Agent cache
           var numOfAgents = (bytes.length - 1)/8;
           for(var i = 0; i < numOfAgents; ++i) {
-            var species = Particles.speciesLibrary[bytes.readUInt32LE(1 + 8*i)];
+            var agent = Particles.Agent.fromBuffer(bytes, 1 + 8*i);
             
-            var red   = ((species.color & 0xFF000000) >>> 0)/0x1000000;
-            var green = ((species.color & 0x00FF0000) >>> 0)/0x10000;
-            var blue  = ((species.color & 0x0000FF00) >>> 0)/0x100;
-            var alpha = ((species.color & 0x000000FF) >>> 0)/0x1;
-            
-            cache.agents[i] = {
-              char: species.char,
-              color: 'rgba(' + red + ',' + green + ',' + blue + ',' + alpha + ')'
-            }
+            cache.agents[i] = agent;
           }
           
           cache.agentsInitialized = true;
@@ -216,21 +201,9 @@ var wsMessageHandler = function(e) {
         case 1: // Region cache
           var numOfCells = (bytes.length - 1)/13;
           for(var i = 0; i < numOfCells; ++i) {
-            var terrain = Particles.terrainLibrary[bytes.readUInt32LE(1 + 13*i + 4)];
+            var cell = Particles.Cell.fromBuffer(bytes, 1 + 13*i);
             
-            var red   = ((terrain.color & 0xFF000000) >>> 0)/0x1000000;
-            var green = ((terrain.color & 0x00FF0000) >>> 0)/0x10000;
-            var blue  = ((terrain.color & 0x0000FF00) >>> 0)/0x100;
-            var alpha = ((terrain.color & 0x000000FF) >>> 0)/0x1;
-            
-            cache.region[Math.floor(i/regionProperties.height)][i % regionProperties.height] = {
-              char: terrain.char,
-              color: 'rgba(' + red + ',' + green + ',' + blue + ',' + alpha + ')'
-            }
-            
-            if(bytes[1 + 13*i + 8]) {
-              cache.region[Math.floor(i/regionProperties.height)][i % regionProperties.height].agentID = bytes.readUInt32LE(1 + 13*i + 9)
-            }
+            cache.region[Math.floor(i/regionProperties.height)][i % regionProperties.height] = cell;
           }
           
           cache.regionInitialized = true;
@@ -241,27 +214,12 @@ var wsMessageHandler = function(e) {
           
           break;
         case 2: // Cell update
-          var x = bytes.readUInt16LE(1);
-          var y = bytes.readUInt16LE(3);
+          var cell = Particles.Cell.fromBuffer(bytes, 1);
           
-          var terrain = Particles.terrainLibrary[bytes.readUInt32LE(5)];
-          
-          var red   = ((terrain.color & 0xFF000000) >>> 0)/0x1000000;
-          var green = ((terrain.color & 0x00FF0000) >>> 0)/0x10000;
-          var blue  = ((terrain.color & 0x0000FF00) >>> 0)/0x100;
-          var alpha = ((terrain.color & 0x000000FF) >>> 0)/0x1;
-          
-          cache.region[x][y] = {
-            char: terrain.char,
-            color: 'rgba(' + red + ',' + green + ',' + blue + ',' + alpha + ')'
-          }
-          
-          if(bytes[9]) {
-            cache.region[x][y].agentID = bytes.readUInt32LE(10);
-          }
+          cache.region[cell.x][cell.y] = cell;
           
           if(cache.agentsInitialized && cache.regionInitialized) {
-            drawCell(x, y, cache.region[x][y]);
+            drawCell(cell.x, cell.y, cache.region[cell.x][cell.y]);
           }
           
           break;

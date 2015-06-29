@@ -106,7 +106,7 @@ fn main () {
   let mut some_agents: Vec<Agent> = Vec::new();
   
   some_agents.push(Agent { species: &SPECIES_LIBRARY[0], x: 0, y: 0, walk: 0, agent_id: 0 });
-  //some_agents.push(Agent { species: &SPECIES_LIBRARY[1], x: 0, y: 0, walk: 0, agent_id: 0 });
+  some_agents.push(Agent { species: &SPECIES_LIBRARY[1], x: 0, y: 0, walk: 0, agent_id: 1 });
   
   // Spawn the first agent
   
@@ -117,11 +117,11 @@ fn main () {
   
   // Spawn the second agent
   
-  /*map[8][8].has_agent = true;
+  map[8][8].has_agent = true;
   map[8][8].agent_id = 1;
   some_agents[1].x = 8;
   some_agents[1].y = 8;
-  */
+  
   
   let mut rng = rand::thread_rng();
   
@@ -220,10 +220,10 @@ fn main () {
     if msg.len() == 13 {
       println!("A REQ of length 13 must be a 'region-agents' REQ, sending agent cache");
       
-      let mut message = [0u8; AGENT_MESSAGE_LENGTH];
+      let mut message = [0u8; 2*AGENT_MESSAGE_LENGTH];
       
       some_agents[0].write_message_to_buffer(&mut message[0 .. 8]);
-      //some_agents[1].write_message_to_buffer(&mut message[8 .. 16]);
+      some_agents[1].write_message_to_buffer(&mut message[8 .. 16]);
       
       cache_sender.send(&message, 0).unwrap();
     }
