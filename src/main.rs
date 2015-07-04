@@ -195,8 +195,47 @@ fn main () {
     }
     
     // Notification phase
-    while !notification_queue.is_empty() {
-      update_sender.send(&notification_queue.remove(0), 0).unwrap();
+    {
+      if(notification_queue.len() > 32) {
+        panic!();
+      }
+      
+      let mut message = [0u8; 32*CELL_MESSAGE_LENGTH + 17];
+      
+      message[0] = 0xC0; // Protocol
+      message[1] = 0xBA;
+      message[2] = 0x17;
+      message[3] = 0x00; // Protocol version
+      message[4] = 0x04; // Cell update packet
+      message[5] = 0; // Region ID
+      message[6] = 0;
+      message[7] = 0;
+      message[8] = 0;
+      message[9] = 0; // sx
+      message[10] = 0;
+      message[11] = 0; // sy
+      message[12] = 0;
+      message[13] = notification_queue.len() as u8; // Cell count
+      message[14] = 0;
+      message[15] = 0;
+      message[16] = 0;
+      
+      for i in 0..notification_queue.len() {
+        for j in 0..CELL_MESSAGE_LENGTH {
+          message[CELL_MESSAGE_LENGTH*i + j + 17] = notification_queue[i][j];
+        }
+      }
+      
+      /*while !notification_queue.is_empty() {
+        
+          
+      }
+      
+      update_sender.send(&notification_queue.remove(0), 0).unwrap();*/
+      
+      notification_queue.clear();
+      
+      update_sender.send(&message, 0).unwrap();
     }
     
     cache_sender.recv(&mut msg, zmq::DONTWAIT);
@@ -204,26 +243,62 @@ fn main () {
     if msg.len() == 6 {
       println!("A REQ of length 6 must be a 'region' REQ, sending region cache");
       
-      let mut test_message = [0u8; WIDTH*HEIGHT*CELL_MESSAGE_LENGTH];
+      let mut message = [0u8; WIDTH*HEIGHT*CELL_MESSAGE_LENGTH + 17];
+      
+      message[0] = 0xC0; // Protocol
+      message[1] = 0xBA;
+      message[2] = 0x17;
+      message[3] = 0x00; // Protocol version
+      message[4] = 0x02; // Cell cache packet
+      message[5] = 0; // Region ID
+      message[6] = 0;
+      message[7] = 0;
+      message[8] = 0;
+      message[9] = 0; // sx
+      message[10] = 0;
+      message[11] = 0; // sy
+      message[12] = 0;
+      message[13] = 32; // Width
+      message[14] = 0;
+      message[15] = 32; // Height
+      message[16] = 0;
       
       for i in 0..WIDTH {
         for j in 0..HEIGHT {
-          let start_index = i*HEIGHT*CELL_MESSAGE_LENGTH + j*CELL_MESSAGE_LENGTH;
+          let start_index = i*HEIGHT*CELL_MESSAGE_LENGTH + j*CELL_MESSAGE_LENGTH + 17;
           
-          map[i][j].write_message_to_buffer(&mut test_message[start_index .. start_index + CELL_MESSAGE_LENGTH]);
+          map[i][j].write_message_to_buffer(&mut message[start_index .. start_index + CELL_MESSAGE_LENGTH]);
         }
       }
       
-      cache_sender.send(&test_message, 0).unwrap();
+      cache_sender.send(&message, 0).unwrap();
     }
     
     if msg.len() == 13 {
       println!("A REQ of length 13 must be a 'region-agents' REQ, sending agent cache");
       
-      let mut message = [0u8; 2*AGENT_MESSAGE_LENGTH];
+      let mut message = [0u8; 2*AGENT_MESSAGE_LENGTH + 17];
       
-      some_agents[0].write_message_to_buffer(&mut message[0 .. 8]);
-      some_agents[1].write_message_to_buffer(&mut message[8 .. 16]);
+      message[0] = 0xC0; // Protocol
+      message[1] = 0xBA;
+      message[2] = 0x17;
+      message[3] = 0x00; // Protocol version
+      message[4] = 0x03; // Agent cache packet
+      message[5] = 0; // Region ID
+      message[6] = 0;
+      message[7] = 0;
+      message[8] = 0;
+      message[9] = 0; // sx
+      message[10] = 0;
+      message[11] = 0; // sy
+      message[12] = 0;
+      message[13] = 2; // Agent count
+      message[14] = 0;
+      message[15] = 0;
+      message[16] = 0;
+      
+      some_agents[0].write_message_to_buffer(&mut message[17 .. 25]);
+      some_agents[1].write_message_to_buffer(&mut message[25 .. 33]);
       
       cache_sender.send(&message, 0).unwrap();
     }
@@ -231,14 +306,25 @@ fn main () {
     if msg.len() == 17 {
       println!("A REQ of length 17 must be a 'region-properties' REQ, sending region properties");
       
-      let mut message = [0u8; 6];
+      let mut message = [0u8; 17];
       
-      message[0] = WIDTH as u8;
-      message[5] = (WIDTH / 0x100) as u8;
-      message[2] = HEIGHT as u8;
-      message[5] = (HEIGHT / 0x100) as u8;
-      message[4] = CELL_MESSAGE_LENGTH as u8;
-      message[5] = (CELL_MESSAGE_LENGTH / 0x100) as u8;
+      message[0] = 0xC0;
+      message[1] = 0xBA;
+      message[2] = 0x17;
+      message[3] = 0x00;
+      message[4] = 1;
+      message[5] = 0; // Region ID
+      message[6] = 0;
+      message[7] = 0;
+      message[8] = 0;
+      message[9] = WIDTH as u8;
+      message[10] = (WIDTH / 0x100) as u8;
+      message[11] = HEIGHT as u8;
+      message[12] = (HEIGHT / 0x100) as u8;
+      message[13] = 1; // Horizontal subregions
+      message[14] = 0;
+      message[15] = 1; // Vertical subregions
+      message[16] = 0;
       
       cache_sender.send(&message, 0).unwrap();
     }

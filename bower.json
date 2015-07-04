@@ -1,0 +1,7 @@
+{
+  "name": "Niflheim",
+  "version": "0.0.0",
+  "dependencies": {
+    "buffer": "~3.46.1"
+  }
+}

@@ -37,9 +37,10 @@ if(top !== self) {
 <script type="text/javascript" src="/lib/draggabilly.pkgd.min.js"></script>
 <script type="text/javascript" src="/lib/DF.js"></script>
 <script type="text/javascript" src="/lib/PanelUI/PanelUI.js"></script>
-<script type="text/javascript" src="/EndianArray.js"></script>
+<script type="text/javascript" src="/bower_components/buffer/buffer.min.js"></script>
 
 <script type="text/javascript" src="/Particles.js"></script>
+<script type="text/javascript" src="/Packets.js"></script>
 <script type="text/javascript" src="/lib/Hermes.js"></script>
 <script type="text/javascript" src="/lib/PersistentWS.js"></script>
 </head>
@@ -146,20 +147,11 @@ if(localStorage.contrast === 'light') {
 // WebSocket //
 ///////////////
 
-var regionProperties = {
-  width: 0,
-  height: 0,
-  cellMessageLength: 0,
-}
-
 var cache = {};
 cache.agents = [];
 cache.agentsInitialized = false;
 cache.region = [];
 cache.regionInitialized = false;
-for(var i = 0, endi = 32; i < endi; ++i) {
-  cache.region[i] = [];
-}
 
 var drawCell = function(x, y, cell) {
   var graphic = cell.hasAgent ? cache.agents[cell.agentID].species : cell.terrain;
@@ -180,31 +172,15 @@ var wsMessageHandler = function(e) {
     var fileReader = new FileReader();
     
     fileReader.onload = function(e) {
-      var bytes = new Uint8Array(fileReader.result);
+      var bytes = new buffer.Buffer(new Uint8Array(fileReader.result));
       
-      switch(bytes[0]) {
-        case 0: // Agent cache
-          var numOfAgents = (bytes.length - 1)/8;
-          for(var i = 0; i < numOfAgents; ++i) {
-            var agent = Particles.Agent.fromBuffer(bytes, 1 + 8*i);
-            
-            cache.agents[i] = agent;
-          }
-          
-          cache.agentsInitialized = true;
-          
-          if(cache.regionInitialized) {
-            drawRegion();
-          }
-          
+      var packet = Packets.parse(bytes);
+      
+      switch(packet.type) {
+        case 'region-properties':
           break;
-        case 1: // Region cache
-          var numOfCells = (bytes.length - 1)/13;
-          for(var i = 0; i < numOfCells; ++i) {
-            var cell = Particles.Cell.fromBuffer(bytes, 1 + 13*i);
-            
-            cache.region[Math.floor(i/regionProperties.height)][i % regionProperties.height] = cell;
-          }
+        case 'cell-cache':
+          cache.region = packet.cells;
           
           cache.regionInitialized = true;
           
@@ -213,24 +189,28 @@ var wsMessageHandler = function(e) {
           }
           
           break;
-        case 2: // Cell update
-          var cell = Particles.Cell.fromBuffer(bytes, 1);
+        case 'agent-cache':
+          cache.agents = packet.agents;
           
-          cache.region[cell.x][cell.y] = cell;
+          cache.agentsInitialized = true;
           
-          if(cache.agentsInitialized && cache.regionInitialized) {
-            drawCell(cell.x, cell.y, cache.region[cell.x][cell.y]);
+          if(cache.regionInitialized) {
+            drawRegion();
           }
+          
+          break;
+        case 'cell-update':
+          packet.cells.forEach(function(v) {
+            cache.region[v.x][v.y] = v;
+            
+            drawCell(v.x, v.y, cache.region[v.x][v.y]);
+          });
           
           break;
       }
     }
     
     fileReader.readAsArrayBuffer(e.data);
-  }
-  
-  if(e.data.constructor.name === 'String') {
-    regionProperties = JSON.parse(e.data);
   }
 }
 

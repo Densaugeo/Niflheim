@@ -90,7 +90,7 @@ var Particles = (function () { // Module pattern
     cell.x = m.readUInt16LE(0 + offset);
     cell.y = m.readUInt16LE(2 + offset);
     cell.terrain = terrainLibrary[m.readUInt32LE(4 + offset)];
-    cell.hasAgent = m.readUInt8LE(8 + offset);
+    cell.hasAgent = m.readUInt8(8 + offset);
     cell.agentID = m.readUInt32LE(9 + offset);
     
     return cell;
