@@ -2,6 +2,7 @@
   "host": "0.0.0.0",
   "port": 8080,
   "silent": false,
+  "logOps": true,
   "repl": true,
   "tls": false,
   "key": "your.key",

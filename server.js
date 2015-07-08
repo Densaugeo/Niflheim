@@ -94,13 +94,24 @@ wsServer.on('connection', function(connection) {
 // Logging //
 /////////////
 
+var eventsToLog = {error: '*'};
+
+if(!options.silent) {
+  eventsToLog.log = '*';
+  eventsToLog.response = '*';
+  
+  if(options.logOps) {
+    eventsToLog.ops = '*';
+  }
+}
+
 server.register({
   register: require('good'),
   options: {
     opsInterval: 15000,
     reporters: [{
       reporter: require('good-console'),
-      events: options.silent ? {error: '*'} : {error: '*', log: '*', response: '*', ops: '*'}
+      events: eventsToLog
     }]
   }
 }, function () {});
