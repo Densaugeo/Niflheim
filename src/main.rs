@@ -226,16 +226,9 @@ fn main () {
         }
       }
       
-      /*while !notification_queue.is_empty() {
-        
-          
-      }
-      
-      update_sender.send(&notification_queue.remove(0), 0).unwrap();*/
+      update_sender.send(&message[0 .. notification_queue.len()*CELL_MESSAGE_LENGTH + 17], 0).unwrap();
       
       notification_queue.clear();
-      
-      update_sender.send(&message, 0).unwrap();
     }
     
     cache_sender.recv(&mut msg, zmq::DONTWAIT);

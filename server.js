@@ -7,6 +7,8 @@ var ws      = require('ws');
 var moment  = require('moment');
 var zmq = require('zmq');
 
+var packets = require(__dirname + '/http/Packets.js');
+
 //////////////
 // Settings //
 //////////////
@@ -146,20 +148,13 @@ agentsCacheRequester.on('message', function(message) {
 
 agentsCacheRequester.send('region-agents');
 
-var regionProperties = {
-  width: 0,
-  height: 0,
-  cellMessageLength: 0,
-}
+var regionProperties = {};
 
 var regionPropertiesRequester = zmq.socket('req');
 regionPropertiesRequester.connect('tcp://127.0.0.1:3001');
 
 regionPropertiesRequester.on('message', function(message) {
-  regionProperties.width = message.readUInt16LE(9);
-  regionProperties.height = message.readUInt16LE(11);
-  regionProperties.cellMessageLength = 13;
-  regionProperties.received = true;
+  regionProperties = packets.fromBuffer(message);
   
   cache.regionProperties = message;
   
@@ -177,14 +172,16 @@ regionCacheRequester.on('message', function(message) {
   cache.cells = message;
   
   simSubscriber.on('message', function(topic, message) {
-    var cellCount = topic.readUInt32LE(13);
+    /*var cellCount = topic.readUInt32LE(13);
     
     for(var i = 0, endi = cellCount; i < endi; ++i) {
       var x = topic.readUInt16LE(13*i + 17);
       var y = topic.readUInt16LE(13*i + 19);
       
       topic.copy(cache.cells, 17 + 13*(y + x*regionProperties.height), 13*i + 17, 13*i + 30);
-    }
+    }*/
+    
+    packets.amendCellCache(cache.cells, topic);
   });
 });
 
@@ -206,6 +203,7 @@ if(options.repl) {
   cli.context.ws                 = ws;
   cli.context.moment             = moment;
   cli.context.zmq             = zmq;
+  cli.context.packets             = packets;
   
   cli.context.options            = options;
   cli.context.log                = log;

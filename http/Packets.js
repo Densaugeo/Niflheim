@@ -5,82 +5,63 @@ var Packets = (function () { // Module pattern
   var PROTOCOL = exports.PROTOCOL = 0xC0BA17*0x100 + VERSION;
   
   var TYPES = exports.TYPES = {
-    'region-properties': 0x01,
-    'cell-cache': 0x02,
-    'agent-cache': 0x03,
-    'cell-update': 0x04,
+    'region-properties': 1,
+    'cell-cache': 2,
+    'agent-cache': 3,
+    'cell-update': 4,
+    'agent-update': 5,
     
-    0x01: 'region-properties',
-    0x02: 'cell-cache',
-    0x03: 'agent-cache',
-    0x04: 'cell-update',
+    1: 'region-properties',
+    2: 'cell-cache',
+    3: 'agent-cache',
+    4: 'cell-update',
+    5: 'agent-update',
   }
   
-  var Packet = exports.Packet = function Packet(options) {}
+  var packetDefinitions = exports.packetDefinitions = {};
   
-  var parsers = exports.parsers = {};
-  
-  parsers['region-properties'] = function(packet, buffer) {
-    packet.width = buffer.readUInt16LE(9);
-    packet.height = buffer.readUInt16LE(11);
-    packet.subregionsX = buffer.readUInt16LE(13);
-    packet.subregionsY = buffer.readUInt16LE(15);
+  packetDefinitions['region-properties'] = {
+    width      : {type: 'UInt16LE', start:  9},
+    height     : {type: 'UInt16LE', start: 11},
+    subregionsX: {type: 'UInt16LE', start: 13},
+    subregionsY: {type: 'UInt16LE', start: 15},
   }
   
-  parsers['cell-cache'] = function(packet, buffer) {
-    packet.sx = buffer.readInt16LE(9);
-    packet.sy = buffer.readInt16LE(11);
-    packet.width = buffer.readInt16LE(13);
-    packet.height = buffer.readInt16LE(15);
-    
-    if(buffer.length < 13*packet.width*packet.height + 17) {
-      throw new Error('Buffer is too short (' + buffer.length + ' bytes) for cell-cache packet of width ' + packets.width + ' and height ' + packets.height);
-    }
-    
-    packet.cells = [];
-    
-    for(var i = 0, endi = packet.width; i < endi; ++i) {
-      packet.cells[i] = [];
-      
-      for(var j = 0, endj = packet.height; j < endj; ++j) {
-        packet.cells[i][j] = Particles.Cell.fromBuffer(buffer, 13*packet.height*i + 13*j + 17);
-      }
-    }
+  Object.defineProperty(packetDefinitions['region-properties'], 'baseSize', {value: 17, enumerable: false});
+  
+  packetDefinitions['cell-cache'] = {
+    sx:{          type: 'Int16LE' , start:  9},
+    sy:{          type: 'Int16LE' , start: 11},
+    width:{       type: 'UInt16LE', start: 13},
+    height:{      type: 'UInt16LE', start: 15},
+    array:{       type: 'NH_Cell' , start: 17, repeatEvery: 13}
   }
   
-  parsers['cell-update'] = function(packet, buffer) {
-    packet.sx = buffer.readInt16LE(9);
-    packet.sy = buffer.readInt16LE(11);
-    packet.cellCount = buffer.readUInt32LE(13);
-    
-    if(buffer.length < 13*packet.cellCount + 17) {
-      throw new Error('Buffer is too short (' + buffer.length + ' bytes) for cell-update packet with cell count ' + packet.cellCount);
-    }
-    
-    packet.cells = [];
-    
-    for(var i = 0, endi = packet.cellCount; i < endi; ++i) {
-      packet.cells[i] = Particles.Cell.fromBuffer(buffer, 13*i + 17);
-    }
+  Object.defineProperty(packetDefinitions['cell-cache'], 'baseSize', {value: 17, enumerable: false});
+  
+  packetDefinitions['agent-cache'] = {
+    sx:{type: 'Int16LE' , start:  9},
+    sy:{ type: 'Int16LE' , start: 11},
+    agentCount:{ type: 'UInt32LE', start: 13},
+    array:{ type: 'NH_Agent', start: 17, repeatEvery: 8}
   }
   
-  parsers['agent-cache'] = function(packet, buffer) {
-    packet.sx = buffer.readInt16LE(9);
-    packet.sy = buffer.readInt16LE(11);
-    packet.agentCount = buffer.readUInt32LE(13);
-    
-    if(buffer.length < 8*packet.agentCount + 17) {
-      throw new Error('Buffer is too short (' + buffer.length + ' bytes) for agent-cache packet with agent count ' + packet.agentCount);
-    }
-    
-    packet.agents = [];
-    
-    for(var i = 0, endi = packet.agentCount; i < endi; ++i) {
-      packet.agents[i] = Particles.Agent.fromBuffer(buffer, 8*i + 17);
-    }
+  Object.defineProperty(packetDefinitions['agent-cache'], 'baseSize', {value: 17, enumerable: false});
+  
+  packetDefinitions['cell-update'] = {
+    sx:{ type: 'Int16LE' , start:  9},
+    sy:{ type: 'Int16LE' , start: 11},
+    cellCount:{ type: 'UInt32LE', start: 13},
+    array:{ type: 'NH_Cell' , start: 17, repeatEvery: 13}
   }
   
-  var parse = exports.parse = function parse(buffer) {
+  Object.defineProperty(packetDefinitions['cell-update'], 'baseSize', {value: 17, enumerable: false});
+  
+  packetDefinitions['agent-update'] = packetDefinitions['agent-cache'];
+  
+  var Packet = exports.Packet = function Packet() {}
+  
+  var fromBuffer = exports.fromBuffer = function fromBuffer(buffer) {
     var protocol = buffer.readUInt32BE(0);
     
     if(protocol !== PROTOCOL) {
@@ -92,13 +73,94 @@ var Packets = (function () { // Module pattern
     packet.type = TYPES[buffer.readUInt8(4)];
     packet.regionID = buffer.readUInt32LE(5);
     
-    if(typeof parsers[packet.type] === 'function') {
-      parsers[packet.type](packet, buffer);
-    } else {
-      throw new Error('Packet type not recognized (type id ' + type + ')');
+    if(packetDefinitions[packet.type] === undefined) {
+      throw new Error('Packet type not recognized (type id ' + buffer.readUInt8(4) + ')');
     }
     
+    propsFromBuffer(packet, buffer);
+    
     return packet;
+  }
+  
+  var propsFromBuffer = exports.propsFromBuffer = function propsFromBuffer(packet, buffer) {
+    for(var i in packetDefinitions[packet.type]) {
+      var prop = packetDefinitions[packet.type][i];
+      
+      if(prop.repeatEvery) { // This property is an array that goes to the end of the packet
+        packet[i] = [];
+        
+        for(var j = prop.start; j < buffer.length - prop.repeatEvery + 1; j += prop.repeatEvery) {
+          packet[i].push(buffer['read' + prop.type](j));
+        }
+      } else {
+        packet[i] = buffer['read' + prop.type](prop.start);
+      }
+    }
+  }
+  
+  var toBuffer = exports.toBuffer = function toBuffer(packet) {
+    if(packet.type === undefined) {
+      throw new Error('Required property .type not defined');
+    }
+    
+    if(packet.regionID === undefined) {
+      throw new Error('Required property .regionID not defined');
+    }
+    
+    if(TYPES[packet.type] === undefined) {
+      throw new Error('Packet type not recognized (type: ' + packet.type + ')');
+    }
+    
+    var size = packetDefinitions[packet.type].baseSize;
+    
+    if(packet.array && packetDefinitions[packet.type].array) {
+      size += packet.array.length*packetDefinitions[packet.type].array.repeatEvery;
+    }
+    
+    var buffer = new NH_Buffer(size);
+    
+    // Write preamble
+    buffer.writeUInt32BE(PROTOCOL, 0);
+    buffer.writeUInt8(TYPES[packet.type], 4);
+    buffer.writeUInt32LE(packet.regionID, 5);
+    
+    propsToBuffer(packet, buffer);
+    
+    return buffer;
+  }
+  
+  var propsToBuffer = exports.propsToBuffer = function propsToBuffer(packet, buffer) {
+    for(var i in packetDefinitions[packet.type]) {
+      var v = packetDefinitions[packet.type][i];
+      
+      if(packet[i] === undefined) {
+        throw new Error('Required property .' + i + ' not defined');
+      }
+      
+      if(v.repeatEvery) { // This property is an array that goes to the end of the packet
+        packet[i] = [];
+        
+        packet[i].forEach(function(w, j) {
+          buffer['write' + v.type](w, v.start + j*v.repeatEvery);
+        });
+      } else {
+        buffer['write' + v.type](packet[i], v.start);
+      }
+    }
+  }
+  
+  var amendCellCache = exports.amendCellCache = function amendCellCache(cellCache, cellUpdate) {
+    var ccDef = packetDefinitions['cell-cache'];
+    var cuDef = packetDefinitions['cell-update'];
+    
+    var cellCacheHeight = cellCache.readUInt16LE(ccDef.height.start);
+    
+    for(var i = cuDef.array.start; i < cellUpdate.length; i += cuDef.array.repeatEvery) {
+      var x = cellUpdate.readUInt16LE(i);
+      var y = cellUpdate.readUInt16LE(i + 2);
+      
+      cellUpdate.copy(cellCache, ccDef.array.start + ccDef.array.repeatEvery*(y + x*cellCacheHeight), i, i + cuDef.array.repeatEvery);
+    }
   }
   
   return exports;
