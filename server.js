@@ -127,13 +127,13 @@ cache.regionProperties = Buffer(0);
 
 var simSubscriber = zmq.socket('sub');
 simSubscriber.connect('tcp://127.0.0.1:3000');
-simSubscriber.subscribe('');
+simSubscriber.subscribe('updates');
 
 log('Subscriber connected to tcp://127.0.0.1:3000');
 
 simSubscriber.on('message', function(topic, message) {
   wsServer.clients.forEach(function(v) {
-    v.send(topic);
+    v.send(message);
   });
 });
 
@@ -146,7 +146,7 @@ agentsCacheRequester.on('message', function(message) {
   cache.agents = message;
 });
 
-agentsCacheRequester.send('region-agents');
+agentsCacheRequester.send(new Buffer([0xC0, 0xBA, 0x17, 0x00, 3]));
 
 var regionProperties = {};
 
@@ -161,7 +161,7 @@ regionPropertiesRequester.on('message', function(message) {
   log('Received region properties: ' + JSON.stringify(regionProperties));
 });
 
-regionPropertiesRequester.send('region-properties');
+regionPropertiesRequester.send(new Buffer([0xC0, 0xBA, 0x17, 0x00, 1]));
 
 var regionCacheRequester = zmq.socket('req');
 regionCacheRequester.connect('tcp://127.0.0.1:3001');
@@ -172,20 +172,11 @@ regionCacheRequester.on('message', function(message) {
   cache.cells = message;
   
   simSubscriber.on('message', function(topic, message) {
-    /*var cellCount = topic.readUInt32LE(13);
-    
-    for(var i = 0, endi = cellCount; i < endi; ++i) {
-      var x = topic.readUInt16LE(13*i + 17);
-      var y = topic.readUInt16LE(13*i + 19);
-      
-      topic.copy(cache.cells, 17 + 13*(y + x*regionProperties.height), 13*i + 17, 13*i + 30);
-    }*/
-    
-    packets.amendCellCache(cache.cells, topic);
+    packets.amendCellCache(cache.cells, message);
   });
 });
 
-regionCacheRequester.send('region');
+regionCacheRequester.send(new Buffer([0xC0, 0xBA, 0x17, 0x00, 2]));
 
 log('Cache requests sent to tcp://127.0.0.1:3000');
 
