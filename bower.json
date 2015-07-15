@@ -4,6 +4,7 @@
   "dependencies": {
     "buffer": "~3.46.1",
     "persistent-ws": "~0.0.1",
-    "hermes": "git://github.com/Densaugeo/Hermes.git#~0.0.2"
+    "hermes": "git://github.com/Densaugeo/Hermes.git#~0.0.2",
+    "font-awesome": "~4.3.0"
   }
 }
