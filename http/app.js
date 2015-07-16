@@ -85,6 +85,14 @@ sidebar.on('clear', function(e) {
   localStorage.clear();
 });
 
+document.addEventListener('keydown', function(e) {
+  var direction = [101, 105, 102, 99, 98, 97, 100, 103, 104].indexOf(e.keyCode);
+  
+  if(direction !== -1) {
+    wstest.socket.send(Packets.toBuffer({type: 'agent-action', regionID: 0, agentID: 1, action: 1, direction: direction}));
+  }
+});
+
 ////////////////////
 // Initialization //
 ////////////////////
