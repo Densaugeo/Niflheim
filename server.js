@@ -72,6 +72,11 @@ wsServer.on('connection', function(connection) {
   log('Received WebSocket');
   
   connection.on('message', function(message) {
+    if(message.constructor.name === 'Buffer') {
+      agentActionRelay.send(message);
+      return;
+    }
+    
     var object = JSON.parse(message);
     
     switch(object.req) {
@@ -180,6 +185,8 @@ regionCacheRequester.send(new Buffer([0xC0, 0xBA, 0x17, 0x00, 2]));
 
 log('Cache requests sent to tcp://127.0.0.1:3000');
 
+var agentActionRelay = zmq.socket('req');
+agentActionRelay.connect('tcp://127.0.0.1:3001');
 
 //////////
 // REPL //

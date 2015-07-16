@@ -10,12 +10,14 @@ var Packets = (function () { // Module pattern
     'agent-cache': 3,
     'cell-update': 4,
     'agent-update': 5,
+    'agent-action': 6,
     
     1: 'region-properties',
     2: 'cell-cache',
     3: 'agent-cache',
     4: 'cell-update',
     5: 'agent-update',
+    6: 'agent-actions',
   }
   
   var packetDefinitions = exports.packetDefinitions = {};
@@ -30,34 +32,42 @@ var Packets = (function () { // Module pattern
   Object.defineProperty(packetDefinitions['region-properties'], 'baseSize', {value: 17, enumerable: false});
   
   packetDefinitions['cell-cache'] = {
-    sx:{          type: 'Int16LE' , start:  9},
-    sy:{          type: 'Int16LE' , start: 11},
-    width:{       type: 'UInt16LE', start: 13},
-    height:{      type: 'UInt16LE', start: 15},
-    array:{       type: 'NH_Cell' , start: 17, repeatEvery: 13}
+    sx         : {type: 'Int16LE' , start:  9},
+    sy         : {type: 'Int16LE' , start: 11},
+    width      : {type: 'UInt16LE', start: 13},
+    height     : {type: 'UInt16LE', start: 15},
+    array      : {type: 'NH_Cell' , start: 17, repeatEvery: 13}
   }
   
   Object.defineProperty(packetDefinitions['cell-cache'], 'baseSize', {value: 17, enumerable: false});
   
   packetDefinitions['agent-cache'] = {
-    sx:{type: 'Int16LE' , start:  9},
-    sy:{ type: 'Int16LE' , start: 11},
-    agentCount:{ type: 'UInt32LE', start: 13},
-    array:{ type: 'NH_Agent', start: 17, repeatEvery: 8}
+    sx         : {type: 'Int16LE' , start:  9},
+    sy         : {type: 'Int16LE' , start: 11},
+    agentCount : {type: 'UInt32LE', start: 13},
+    array      : {type: 'NH_Agent', start: 17, repeatEvery: 8}
   }
   
   Object.defineProperty(packetDefinitions['agent-cache'], 'baseSize', {value: 17, enumerable: false});
   
   packetDefinitions['cell-update'] = {
-    sx:{ type: 'Int16LE' , start:  9},
-    sy:{ type: 'Int16LE' , start: 11},
-    cellCount:{ type: 'UInt32LE', start: 13},
-    array:{ type: 'NH_Cell' , start: 17, repeatEvery: 13}
+    sx         : {type: 'Int16LE' , start:  9},
+    sy         : {type: 'Int16LE' , start: 11},
+    cellCount  : {type: 'UInt32LE', start: 13},
+    array      : {type: 'NH_Cell' , start: 17, repeatEvery: 13}
   }
   
   Object.defineProperty(packetDefinitions['cell-update'], 'baseSize', {value: 17, enumerable: false});
   
   packetDefinitions['agent-update'] = packetDefinitions['agent-cache'];
+  
+  packetDefinitions['agent-action'] = {
+    agentID    : {type: 'UInt32LE', start:  9},
+    action     : {type: 'UInt8'   , start: 13},
+    direction  : {type: 'UInt8'   , start: 14}
+  }
+  
+  Object.defineProperty(packetDefinitions['agent-action'], 'baseSize', {value: 15, enumerable: false});
   
   var Packet = exports.Packet = function Packet() {}
   
