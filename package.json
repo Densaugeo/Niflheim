@@ -1,22 +1,18 @@
 {
-  "name": "newserver",
+  "name": "niflheim",
   "version": "0.0.0",
-  "description": "My new template server",
+  "description": "Niflheim with Rust",
   "main": "server.js",
   "scripts": {
-    "test": "N/A"
+    "install-bower": "bower install",
+    "test": "jshint *.js http/*.js",
+    "build-client": "browserify http/app.js > http/app.pkgd.js"
   },
   "repository": {
     "type": "git",
     "url": "N/A"
   },
-  "keywords": [
-    "i",
-    "can",
-    "has",
-    "no",
-    "keywords"
-  ],
+  "keywords": [],
   "author": "Densaugeo",
   "license": "MIT",
   "dependencies": {
@@ -32,10 +28,5 @@
     "bower": "~1.4.1",
     "browserify": "~10.2.6",
     "jshint": "~2.8.0"
-  },
-  "scripts": {
-    "install-bower": "bower install",
-    "test": "jshint *.js http/*.js",
-    "build-client": "browserify http/app.js > http/app.pkgd.js"
   }
 }
