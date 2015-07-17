@@ -29,9 +29,11 @@
     "zmq": "~2.12.0"
   },
   "devDependencies": {
+    "browserify": "~10.2.6",
     "jshint": "~2.8.0"
   },
   "scripts": {
-    "test": "jshint *.js http/*.js"
+    "test": "jshint *.js http/*.js",
+    "build-client": "browserify http/app.js > http/app.pkgd.js"
   }
 }
