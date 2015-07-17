@@ -29,10 +29,12 @@
     "zmq": "~2.12.0"
   },
   "devDependencies": {
+    "bower": "~1.4.1",
     "browserify": "~10.2.6",
     "jshint": "~2.8.0"
   },
   "scripts": {
+    "install-bower": "bower install",
     "test": "jshint *.js http/*.js",
     "build-client": "browserify http/app.js > http/app.pkgd.js"
   }
