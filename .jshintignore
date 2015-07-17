@@ -1,0 +1,4 @@
+*.pkgd.js
+*.min.js
+http/*.pkgd.js
+http/*.min.js
