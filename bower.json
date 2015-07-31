@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "dependencies": {
     "buffer": "~3.46.1",
-    "persistent-ws": "~0.0.5",
     "hermes": "git://github.com/Densaugeo/Hermes.git#~0.0.4",
-    "font-awesome": "~4.3.0"
+    "font-awesome": "~4.3.0",
+    "persistent-ws": "~1.0.0"
   }
 }

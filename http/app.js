@@ -195,7 +195,7 @@ var wsMessageHandler = window.wsMessageHandler = function(e) {
   }
 }
 
-var wstest = window.wstest = new PersistentWS({url: window.location.protocol.replace('http', 'ws') + '//' + window.location.host});
+var wstest = window.wstest = new PersistentWS(window.location.protocol.replace('http', 'ws') + '//' + window.location.host, undefined, {verbose: true});
 
 wstest.addEventListener('message', wsMessageHandler);
 wstest.addEventListener('open', function() {

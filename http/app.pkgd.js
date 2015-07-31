@@ -196,7 +196,7 @@ var wsMessageHandler = window.wsMessageHandler = function(e) {
   }
 }
 
-var wstest = window.wstest = new PersistentWS({url: window.location.protocol.replace('http', 'ws') + '//' + window.location.host});
+var wstest = window.wstest = new PersistentWS(window.location.protocol.replace('http', 'ws') + '//' + window.location.host, undefined, {verbose: true});
 
 wstest.addEventListener('message', wsMessageHandler);
 wstest.addEventListener('open', function() {
@@ -415,65 +415,97 @@ if(typeof module !== 'undefined' && module !== null && module.exports) {
    * @module PersistentWS
    * @description This is a WebSocket that attempts to reconnect after disconnections
    * @description Reconnection times start at ~5s, double after each failed attempt, and are randomized +/- 10%
+   * @description Exposes standard WebSocket API (https://developer.mozilla.org/en-US/docs/Web/API/WebSocket)
    * 
-   * @example var persistentConnection = new PersistentWS({url: wss://foo.bar/});
+   * @example var persistentConnection = new PersistentWS('wss://foo.bar/');
    * @example
-   * @example persistentConnection.addEventListener('message', function(message) {
-   * @example   console.log('Received: ' + message);
+   * @example persistentConnection.addEventListener('message', function(e) {
+   * @example   console.log('Received: ' + e.data);
    * @example });
+   * @example
+   * @example // Options may be supplied as a *third* parameter, after the rarely-used protocols argument
+   * @example var anotherConnection = new PersistentWS('wss://foo.bar/', undefined, {verbose: true});
    */
-  var PersistentWS = function PersistentWS(options) {
+  var PersistentWS = function PersistentWS(url, protocols, options) {
     var self = this;
     
-    // @prop String url
-    // @option String url
-    this.url = String(options.url);
-    
-    //@prop Boolean silent
-    //@option Boolean silent
-    this.silent = Boolean(options.silent);
+    // @prop Boolean verbose -- console.log() info about connections and disconnections
+    // @option Boolean verbose -- Sets .verbose
+    this.verbose = Boolean(options && options.verbose) || false;
     
     // @prop Number initialRetryTime -- Delay for first retry attempt, in milliseconds. Always an integer >= 100
-    this.initialRetryTime = 5000;
+    // @option Number initialRetryTime -- Sets .initialRetryTime
+    this.initialRetryTime = Number(options && options.initialRetryTime) || 5000;
+    
+    // @prop Boolean persistence -- If false, disables reconnection
+    // @option Boolean persistence -- Sets .persistence
+    this.persistence = options === undefined || options.persistence === undefined || Boolean(options.persistence);
     
     // @prop Number attempts -- Retry attempt # since last disconnect
     this.attempts = 0;
     
     // @prop WebSocket socket -- The actual WebSocket. Events registered directly to the raw socket will be lost after reconnections
-    this.socket = undefined;
+    this.socket = {};
     
-    // @prop [[String, Function, Boolean]] _listeners -- For internal use. Array of .addEventListener arguments
-    this._listeners = [];
+    // @method undefined _onopen(Event e) -- For internal use. Calls to .onopen() and handles reconnection cleanup
+    this._onopen = function(e) {
+      if(self.onopen) {
+        self.onopen(e);
+      }
+    }
     
-    // @method undefined _connect() -- For internal use
-    this._connect = function _connect() {
-      if(!self.silent) {
-        console.log('Opening WebSocket to ' + self.url);
+    // @method undefined _onmessage(Event e) -- For internal use. Calls to .onmessage()
+    this._onmessage = function(e) {
+      if(self.onmessage) {
+        self.onmessage(e);
+      }
+    }
+    
+    // @method undefined _onerror(Error e) -- For internal use. Calls to .onerror()
+    this._onerror = function(e) {
+      if(self.onerror) {
+        self.onerror(e);
+      }
+    }
+    
+    // @method undefined _onclose(Event e) -- For internal use. Calls to .onclose() and ._reconnect() where appropriate
+    this._onclose = function(e) {
+      if(self.persistence) {
+        self._reconnect();
       }
       
-      self.socket = new WebSocket(self.url);
+      if(self.onclose) {
+        self.onclose(e);
+      }
+    }
+    
+    // @prop [[String, Function, Boolean]] _listeners -- For internal use. Array of .addEventListener arguments
+    this._listeners = [
+      ['open', this._onopen],
+      ['message', this._onmessage],
+      ['error', this._onerror],
+      ['close', this._onclose]
+    ];
+    
+    // @method undefined _connect() -- For internal use. Connects and copies in event listeners
+    this._connect = function _connect() {
+      if(self.verbose) {
+        console.log('Opening WebSocket to ' + url);
+      }
+      
+      var binaryType = self.socket.binaryType;
+      
+      self.socket = new WebSocket(url, protocols);
+      
+      self.socket.binaryType = binaryType || self.socket.binaryType;
       
       // Reset .attempts counter on successful connection
       self.socket.addEventListener('open', function() {
-        if(!self.silent) {
+        if(self.verbose) {
           console.log('WebSocket connected to ' + self.url);
         }
         
         self.attempts = 0;
-      });
-      
-      self.socket.addEventListener('close', function() {
-        // Retty time falls of exponentially
-        var retryTime = self.initialRetryTime*Math.pow(2, self.attempts++);
-        
-        // Retry time is randomized +/- 10% to prevent clients reconnecting at the exact same time after a server event
-        retryTime += Math.floor(Math.random()*retryTime/5 - retryTime/10);
-        
-        if(!self.silent) {
-          console.log('WebSocket disconnected, attempting to reconnect in ' + retryTime + 'ms...');
-        }
-        
-        setTimeout(self._connect, retryTime);
       });
       
       self._listeners.forEach(function(v) {
@@ -484,7 +516,37 @@ if(typeof module !== 'undefined' && module !== null && module.exports) {
     this._connect();
   }
   
-  // @method proto undefined addEventListener(String type, Function listener[, Boolean useCapture]) -- Registers event listener on .socket. Event listener will be reregistered after reconnections
+  PersistentWS.CONNECTING = WebSocket.CONNECTING;
+  PersistentWS.OPEN       = WebSocket.OPEN;
+  PersistentWS.CLOSING    = WebSocket.CLOSING;
+  PersistentWS.CLOSED     = WebSocket.CLOSED;
+  
+  PersistentWS.prototype.CONNECTING = WebSocket.CONNECTING;
+  PersistentWS.prototype.OPEN       = WebSocket.OPEN;
+  PersistentWS.prototype.CLOSING    = WebSocket.CLOSING;
+  PersistentWS.prototype.CLOSED     = WebSocket.CLOSED;
+  
+  var webSocketProperties = ['binaryType', 'bufferedAmount', 'extensions', 'protocol', 'readyState', 'url'];
+  
+  webSocketProperties.forEach(function(v) {
+    Object.defineProperty(PersistentWS.prototype, v, {
+      get: function() {
+        return this.socket[v];
+      },
+      set: function(x) {
+        return (this.socket[v] = x);
+      }
+    });
+  });
+  
+  PersistentWS.prototype.close = function(code, reason) {
+    this.socket.close(code, reason);
+  }
+  
+  PersistentWS.prototype.send = function(data) {
+    this.socket.send(data);
+  }
+  
   PersistentWS.prototype.addEventListener = function addEventListener(type, listener, useCapture) {
     this.socket.addEventListener(type, listener, useCapture);
     
@@ -499,7 +561,6 @@ if(typeof module !== 'undefined' && module !== null && module.exports) {
     }
   }
   
-  // @method proto undefined removeEventListener(String type, Function listener[, Boolean useCapture]) -- Removes an event listener from .socket. Event listener will no longer be reregistered after reconnections
   PersistentWS.prototype.removeEventListener = function removeEventListener(type, listener, useCapture) {
     this.socket.removeEventListener(type, listener, useCapture);
     
@@ -530,6 +591,21 @@ if(typeof module !== 'undefined' && module !== null && module.exports) {
     });
     
     return result;
+  }
+  
+  // @method proto undefined _reconnect() -- For internal use. Begins the reconnection timer
+  PersistentWS.prototype._reconnect = function() {
+    // Retty time falls of exponentially
+    var retryTime = this.initialRetryTime*Math.pow(2, this.attempts++);
+    
+    // Retry time is randomized +/- 10% to prevent clients reconnecting at the exact same time after a server event
+    retryTime += Math.floor(Math.random()*retryTime/5 - retryTime/10);
+    
+    if(this.verbose) {
+      console.log('WebSocket disconnected, attempting to reconnect in ' + retryTime + 'ms...');
+    }
+    
+    setTimeout(this._connect, retryTime);
   }
   
   // Only one object to return, so no need for module object to hold it
