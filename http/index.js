@@ -3,7 +3,7 @@
 ///////////////
 
 // Daisy-chainable HTMLElement maker
-var fE = window.fE = PanelUI.forgeElement;
+var fE = window.fE = Hematite.forgeElement;
 
 // Shim for vendor-prefixed fullscreen API
 if(HTMLElement.prototype.requestFullscreen == undefined) {
@@ -31,18 +31,18 @@ ctx.fillRect(0, 0, canvas.width, canvas.height);
 ctx.fillStyle = '#000000';
 ctx.fillRect(1, 1, canvas.width - 2, canvas.height - 2);
 
-var sidebar = window.sidebar = new PanelUI.Sidebar();
+var sidebar = window.sidebar = new Hematite.Sidebar();
 sidebar.addButton({buttonName: 'land'    , faClass: 'fa-university', title: 'Landing page'       });
 sidebar.addButton({buttonName: 'help'    , faClass: 'fa-question'  , title: 'Help'               });
 sidebar.addButton({buttonName: 'fs'      , faClass: 'fa-arrows-alt', title: 'Fullscreen'         });
 sidebar.addButton({buttonName: 'contrast', faClass: 'fa-adjust'    , title: 'Flip Contrast'      });
 sidebar.addButton({buttonName: 'clear'   , faClass: 'fa-recycle'   , title: 'Clear local storage'});
 
-var viewPanel = window.viewPanel = new PanelUI.Panel({id: 'viewer', heading: 'First look into Nifleim\'s world'});
+var viewPanel = window.viewPanel = new Hematite.Panel({id: 'viewer', heading: 'First look into Nifleim\'s world'});
 viewPanel.domElement.appendChild(canvas);
 viewPanel.open();
 
-var helpPanel = window.helpPanel = new PanelUI.Panel({id: 'help', heading: 'A Panel That Could Be Helpful'});
+var helpPanel = window.helpPanel = new Hematite.Panel({id: 'help', heading: 'A Panel That Could Be Helpful'});
 helpPanel.domElement.appendChild(fE('div', {textContent: 'But this is only a demo'}));
 
 var darkColors = window.darkColors = document.getElementById('dark_colors');
