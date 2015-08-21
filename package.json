@@ -6,7 +6,7 @@
   "scripts": {
     "install-bower": "bower install",
     "test": "jshint *.js http/*.js",
-    "build-client": "browserify http/app.js > http/app.pkgd.js"
+    "build-client": "browserify http/libs.js > http/libs.pkgd.js"
   },
   "repository": {
     "type": "git",

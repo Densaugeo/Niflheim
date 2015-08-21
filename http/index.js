@@ -1,7 +1,3 @@
-var PersistentWS = window.PersistentWS = require('./bower_components/persistent-ws/');
-var buffer = window.buffer = require('./bower_components/buffer/');
-var hermes = window.hermes = require('./bower_components/hermes/');
-
 ///////////////
 // Utilities //
 ///////////////
