@@ -21,16 +21,15 @@
     "good-console": "~5.0.1",
     "good-file": "~5.0.1",
     "hapi": "~8.8.0",
-    "hermes": "git://github.com/Densaugeo/Hermes.git",
     "moment": "~2.10.3",
-    "persistent-ws": "^1.0.0",
     "ws": "~0.7.2",
     "zmq": "~2.12.0"
   },
   "devDependencies": {
     "asynter": "^0.1.4",
-    "bower": "~1.4.1",
     "browserify": "~10.2.6",
-    "jshint": "~2.8.0"
+    "hermes": "git://github.com/Densaugeo/Hermes.git",
+    "jshint": "~2.8.0",
+    "persistent-ws": "^1.0.0"
   }
 }
