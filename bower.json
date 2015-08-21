@@ -1,9 +1,0 @@
-{
-  "name": "Niflheim",
-  "version": "0.0.0",
-  "dependencies": {
-    "hermes": "git://github.com/Densaugeo/Hermes.git#~0.0.4",
-    "font-awesome": "~4.3.0",
-    "persistent-ws": "~1.0.0"
-  }
-}

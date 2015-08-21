@@ -1,3 +1,3 @@
-window.PersistentWS = require('./bower_components/persistent-ws/');
+window.PersistentWS = require('persistent-ws');
 window.buffer = require('buffer');
-window.hermes = require('./bower_components/hermes/');
+window.hermes = require('hermes');

@@ -1,4 +1,9 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+window.PersistentWS = require('persistent-ws');
+window.buffer = require('buffer');
+window.hermes = require('hermes');
+
+},{"buffer":4,"hermes":2,"persistent-ws":3}],2:[function(require,module,exports){
 /**
  * @description This is essentilly a hackish raster font for html canvases
  * @description Characters are 8 pixels wide; lines are 12 pixels high
@@ -171,7 +176,7 @@ if(typeof module !== 'undefined' && module !== null && module.exports) {
   module.exports = HERMES;
 }
 
-},{}],2:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 (function(root, factory) {
   if(typeof define === 'function' && define.amd) {
     // AMD. Register as an anonymous module.
@@ -393,12 +398,7 @@ if(typeof module !== 'undefined' && module !== null && module.exports) {
   return PersistentWS;
 })); // Module pattern
 
-},{}],3:[function(require,module,exports){
-window.PersistentWS = require('./bower_components/persistent-ws/');
-window.buffer = require('buffer');
-window.hermes = require('./bower_components/hermes/');
-
-},{"./bower_components/hermes/":1,"./bower_components/persistent-ws/":2,"buffer":4}],4:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -2084,4 +2084,4 @@ module.exports = isArray || function (val) {
   return !! val && '[object Array]' == str.call(val);
 };
 
-},{}]},{},[3]);
+},{}]},{},[1]);

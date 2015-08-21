@@ -4,7 +4,8 @@
   "description": "Niflheim with Rust",
   "main": "server.js",
   "scripts": {
-    "install-bower": "bower install",
+    "install": "npm run install-font-awesome",
+    "install-font-awesome": "npm install --prefix=http font-awesome",
     "test": "jshint *.js http/*.js",
     "build-client": "browserify http/libs.js > http/libs.pkgd.js"
   },
@@ -16,12 +17,14 @@
   "author": "Densaugeo",
   "license": "MIT",
   "dependencies": {
-    "ws": "~0.7.2",
-    "good-file": "~5.0.1",
-    "good-console": "~5.0.1",
-    "moment": "~2.10.3",
-    "hapi": "~8.8.0",
     "good": "~6.3.0",
+    "good-console": "~5.0.1",
+    "good-file": "~5.0.1",
+    "hapi": "~8.8.0",
+    "hermes": "git://github.com/Densaugeo/Hermes.git",
+    "moment": "~2.10.3",
+    "persistent-ws": "^1.0.0",
+    "ws": "~0.7.2",
     "zmq": "~2.12.0"
   },
   "devDependencies": {
