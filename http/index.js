@@ -85,7 +85,7 @@ document.addEventListener('keydown', function(e) {
   var direction = [101, 105, 102, 99, 98, 97, 100, 103, 104].indexOf(e.keyCode);
   
   if(direction !== -1) {
-    wstest.socket.send(Packets.toBuffer({type: 'agent-action', regionID: 0, agentID: 1, action: 1, direction: direction}));
+    wstest.socket.send(Packets.toBuffer({type: Packets.TYPES.agent_action, regionID: 0, agentID: 1, action: 1, direction: direction}));
   }
 });
 
@@ -108,7 +108,7 @@ cache.region = [];
 cache.regionInitialized = false;
 
 var drawCell = window.drawCell = function(x, y, cell) {
-  var graphic = cell.hasAgent ? cache.agents[cell.agentID].species : cell.terrain;
+  var graphic = cell.hasAgent ? Particles.speciesLibrary[cache.agents[cell.agentID].speciesID] : Particles.terrainLibrary[cell.terrainID];
   
   ctx.hermesRedraw(graphic.char, 2 + 8*x, 2 + 12*y, 1, graphic.color);
 }
@@ -121,36 +121,19 @@ var drawRegion = window.drawRegion = function() {
   });
 }
 
-// Uses same inheritance as buffer.Buffer
-// Standard inheritance does not work well (or at all?) with JS typed arrays
-var NH_Buffer = window.NH_Buffer = function NH_Buffer() {
-  var buf = buffer.Buffer.apply(this, arguments);
-  
-  buf.readNH_Agent = function readNH_Agent(offset) {
-    return Particles.Agent.fromBuffer(this, offset);
-  }
-  
-  buf.readNH_Cell = function readNH_Cell(offset) {
-    return Particles.Cell.fromBuffer(this, offset);
-  }
-  
-  return buf;
-}
-
 var wsMessageHandler = window.wsMessageHandler = function(e) {
   if(e.data.constructor.name === 'Blob') {
     var fileReader = new FileReader();
     
     fileReader.onload = function(e) {
-      //var bytes = new buffer.Buffer(new Uint8Array(fileReader.result));
-      var bytes = new NH_Buffer(new Uint8Array(fileReader.result));
+      var bytes = new buffer.Buffer(new Uint8Array(fileReader.result));
       
       var packet = Packets.fromBuffer(bytes);
       
       switch(packet.type) {
-        case 'region-properties':
+        case Packets.TYPES.region_properties:
           break;
-        case 'cell-cache':
+        case Packets.TYPES.cell_cache:
           for(var i = 0, endi = packet.width; i < endi; ++i) {
             cache.region[i] = [];
             
@@ -166,7 +149,7 @@ var wsMessageHandler = window.wsMessageHandler = function(e) {
           }
           
           break;
-        case 'agent-cache':
+        case Packets.TYPES.agent_cache:
           cache.agents = packet.array;
           
           cache.agentsInitialized = true;
@@ -176,7 +159,7 @@ var wsMessageHandler = window.wsMessageHandler = function(e) {
           }
           
           break;
-        case 'cell-update':
+        case Packets.TYPES.cell_update:
           packet.array.forEach(function(v) {
             cache.region[v.x][v.y] = v;
             

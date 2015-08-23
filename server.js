@@ -7,6 +7,8 @@ var ws      = require('ws');
 var moment  = require('moment');
 var zmq = require('zmq');
 
+var struct_fu = global.struct_fu = require('struct-fu');
+var Particles = global.Particles = require(__dirname + '/http/Particles.js');
 var packets = require(__dirname + '/http/Packets.js');
 
 //////////////
