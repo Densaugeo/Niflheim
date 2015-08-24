@@ -1,6 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var struct_fu = require('struct-fu');
-var buffer = require('buffer');
+var buffer = require('buffer'); // jshint ignore:line
 
 var VERSION = exports.VERSION = 0x00;
 var PROTOCOL = exports.PROTOCOL =  0x1000000*VERSION + 0x17BAC0;
@@ -88,8 +88,6 @@ packetDefinitions.agent_action = {
     struct_fu.uint8('direction')
   ])
 }
-
-var Packet = exports.Packet = function Packet() {}
 
 var fromBuffer = exports.fromBuffer = function fromBuffer(buffer) {
   var packet = headerDefinition.unpack(buffer);

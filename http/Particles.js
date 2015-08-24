@@ -1,6 +1,8 @@
+/* jshint unused: false */
+
 var ParticleType = exports.ParticleType = function ParticleType(options) {
   // @prop Number typeID -- 32-bit type identifier
-  this.typeID = (options.typeID & 0xFFFFFFFF) >>> 0;
+  this.typeID = (options.typeID & 0xFFFFFFFF) >>> 0; // jshint ignore:line
   
   // @prop String name -- Common name
   this.name = String(options.name);

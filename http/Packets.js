@@ -1,3 +1,5 @@
+/* jshint unused: false */
+
 var struct_fu = require('struct-fu');
 var buffer = require('buffer');
 
@@ -88,13 +90,11 @@ packetDefinitions.agent_action = {
   ])
 }
 
-var Packet = exports.Packet = function Packet() {}
-
 var fromBuffer = exports.fromBuffer = function fromBuffer(buffer) {
   var packet = headerDefinition.unpack(buffer);
   
   if(packet.protocol !== PROTOCOL) {
-    throw new Error('Expected protocol ' + PROTOCOL.toString(16) + ' but found ' + protocol.toString(16));
+    throw new Error('Expected protocol ' + PROTOCOL.toString(16) + ' but found ' + PROTOCOL.toString(16));
   }
   
   if(TYPES[packet.type]) {

@@ -129,9 +129,9 @@ server.register({
 // Link to region //
 
 var cache = {};
-cache.agents = Buffer(0);
-cache.cells = Buffer(0);
-cache.regionProperties = Buffer(0);
+cache.agents = new Buffer(0);
+cache.cells = new Buffer(0);
+cache.regionProperties = new Buffer(0);
 
 var simSubscriber = zmq.socket('sub');
 simSubscriber.connect('tcp://127.0.0.1:3000');

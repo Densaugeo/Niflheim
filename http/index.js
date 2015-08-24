@@ -1,3 +1,5 @@
+/* globals buffer: false, Hematite: false, Packets: false, Particles: false, PersistentWS: false */
+
 ///////////////
 // Utilities //
 ///////////////
@@ -6,10 +8,10 @@
 var fE = window.fE = Hematite.forgeElement;
 
 // Shim for vendor-prefixed fullscreen API
-if(HTMLElement.prototype.requestFullscreen == undefined) {
+if(HTMLElement.prototype.requestFullscreen === undefined) {
   HTMLElement.prototype.requestFullscreen = HTMLElement.prototype.msRequestFullscreen || HTMLElement.prototype.mozRequestFullScreen || HTMLElement.prototype.webkitRequestFullscreen;
 }
-if(document.exitFullscreen == undefined) {
+if(document.exitFullscreen === undefined) {
   document.exitFullscreen = document.msExitFullscreen || document.mozCancelFullScreen || document.webkitExitFullscreen;
 }
 if(document.fullscreenElement === undefined) {
@@ -51,23 +53,23 @@ var darkColors = window.darkColors = document.getElementById('dark_colors');
 // Events //
 ////////////
 
-sidebar.on('land', function(e) {
+sidebar.on('land', function() {
   window.location = '/';
 });
 
-sidebar.on('help', function(e) {
+sidebar.on('help', function() {
   helpPanel.toggleOpen(true);
 });
 
-sidebar.on('fs', function(e) {
-  if(document.fullscreenElement == null) {
+sidebar.on('fs', function() {
+  if(document.fullscreenElement === undefined) {
     document.body.requestFullscreen();
   } else {
     document.exitFullscreen();
   }
 });
 
-sidebar.on('contrast', function(e) {
+sidebar.on('contrast', function() {
   if(darkColors.parentNode === document.head) {
     document.head.removeChild(darkColors);
     localStorage.contrast = 'light';
@@ -77,7 +79,7 @@ sidebar.on('contrast', function(e) {
   }
 });
 
-sidebar.on('clear', function(e) {
+sidebar.on('clear', function() {
   localStorage.clear();
 });
 
@@ -125,7 +127,7 @@ var wsMessageHandler = window.wsMessageHandler = function(e) {
   if(e.data.constructor.name === 'Blob') {
     var fileReader = new FileReader();
     
-    fileReader.onload = function(e) {
+    fileReader.onload = function() {
       var bytes = new buffer.Buffer(new Uint8Array(fileReader.result));
       
       var packet = Packets.fromBuffer(bytes);
@@ -187,5 +189,4 @@ wstest.addEventListener('open', function() {
 // Startup scripts //
 /////////////////////
 
-eval(localStorage.onstart);
-
+eval(localStorage.onstart); // jshint ignore:line
