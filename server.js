@@ -3,6 +3,7 @@ process.title = 'test-server';
 var repl    = require('repl');
 var fs      = require('fs');
 var hapi    = require('hapi');
+var inert   = require('inert');
 var ws      = require('ws');
 var moment  = require('moment');
 var zmq = require('zmq');
@@ -46,6 +47,8 @@ server.connection({
     cert: fs.readFileSync(__dirname + '/' + options.cert)
   } : false
 });
+
+server.register(inert, function() {});
 
 server.route({
   method: 'GET',

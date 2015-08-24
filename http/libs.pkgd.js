@@ -181,7 +181,7 @@ var amendCellCache = exports.amendCellCache = function amendCellCache(cellCache,
   }
 }
 
-},{"buffer":17,"struct-fu":16}],2:[function(require,module,exports){
+},{"buffer":14,"struct-fu":20}],2:[function(require,module,exports){
 var ParticleType = exports.ParticleType = function ParticleType(options) {
   // @prop Number typeID -- 32-bit type identifier
   this.typeID = (options.typeID & 0xFFFFFFFF) >>> 0;
@@ -230,7 +230,7 @@ window.Hematite = require('hematite');
 window.Particles = require('./Particles.js');
 window.Packets = require('./Packets.js');
 
-},{"./Packets.js":1,"./Particles.js":2,"buffer":17,"hematite":4,"hermes":14,"persistent-ws":15}],4:[function(require,module,exports){
+},{"./Packets.js":1,"./Particles.js":2,"buffer":14,"hematite":4,"hermes":18,"persistent-ws":19}],4:[function(require,module,exports){
 /**
  * @depends AsyNTer
  * @depends Draggabilliy
@@ -2635,725 +2635,6 @@ return Unidragger;
 }));
 
 },{"eventie":10,"unipointer":12}],14:[function(require,module,exports){
-/**
- * @description This is essentilly a hackish raster font for html canvases
- * @description Characters are 8 pixels wide; lines are 12 pixels high
- * @description Adds two methods to the browser's CanvasRenderingContext2D prototype
- */
-
-/**
- * @module HERMES
- */
-var HERMES = (function() { // Module pattern
-  var exports = {};
-  
-  // @prop Number CHAR_WIDTH -- Width of a char. Is 8
-  var CHAR_WIDTH = exports.CHAR_WIDTH = 8;
-  
-  // @prop Number CHAR_HEIGHT -- Height of a char. Is 12
-  var CHAR_HEIGHT = exports.CHAR_HEIGHT = 12;
-  
-  // @prop Object DRAW_CALLS -- Holds coordinates used in .fillRect() calls for each ascii character
-  var DRAW_CALLS = exports.DRAW_CALLS = {
-    ' ' : [],
-    '!' : [[1,  2, 1,  3], [2,  1, 2,  6], [2,  8, 2,  2], [4,  2, 1,  3]],
-    '"' : [[1,  1, 2,  3], [2,  4, 1,  1], [5,  1, 2,  3], [5,  4, 1,  1]],
-    '#' : [[0,  3, 7,  1], [0,  7, 7,  1], [1,  1, 2,  2], [1,  4, 2,  3], [1,  8, 2,  2], [4,  1, 2,  2], [4,  4, 2,  3], [4,  8, 2,  2]],
-    '$' : [[2,  0, 2,  2], [1,  2, 5,  1], [0,  3, 2,  2], [1,  5, 4,  1], [4,  6, 2,  2], [0,  8, 5,  1], [2,  9, 2,  2]],
-    '%' : [[0,  3, 2,  2], [5,  3, 1,  1], [4,  4, 2,  1], [3,  5, 2,  1], [2,  6, 2,  1], [1,  7, 2,  1], [0,  8, 2,  1], [0,  9, 1,  1], [4,  8, 2,  2]],
-    '&' : [[1,  1, 3,  1], [0,  2, 2,  2], [3,  2, 2,  2], [1,  4, 3,  1], [0,  5, 2,  4], [2,  5, 3,  1], [3,  6, 4,  1], [6,  5, 1,  1], [4,  7, 2,  2], [3,  8, 1,  1], [1,  9, 3,  1], [5,  9, 2,  1]],
-    '\'': [[2,  1, 2,  3], [1,  4, 2,  1]],
-    '(' : [[4,  1, 2,  1], [3,  2, 2,  1], [2,  3, 2,  5], [3,  8, 2,  1], [4,  9, 2,  1]],
-    ')' : [[2,  1, 2,  1], [3,  2, 2,  1], [4,  3, 2,  5], [3,  8, 2,  1], [2,  9, 2,  1]],
-    '*' : [[1,  3, 2,  1], [5,  3, 2,  1], [2,  4, 4,  1], [0,  5, 8,  1], [2,  6, 4,  1], [1,  7, 2,  1], [5,  7, 2,  1]],
-    '+' : [[3,  3, 2,  2], [1,  5, 6,  1], [3,  6, 2,  2]],
-    ',' : [[2,  8, 3,  2], [1,  10, 2,  1]],
-    '-' : [[0,  5, 7,  1]],
-    '.' : [[2,  8, 3,  2]],
-    '/' : [[6,  2, 1,  1], [5,  3, 2,  1], [4,  4, 2,  1], [3,  5, 2,  1], [2,  6, 2,  1], [1,  7, 2,  1], [0,  8, 2,  1], [0,  9, 1,  1]],
-    '0' : [[1,  1, 5,  1], [0,  2, 2,  7], [2,  6, 1,  2], [3,  4, 1,  3], [4,  3, 1,  2], [5,  2, 2,  7], [1,  9, 5,  1]],
-    '1' : [[0,  3, 2,  1], [2,  2, 2,  7], [3,  1, 1,  1], [0,  9, 6,  1]],
-    '2' : [[1,  1, 4,  1], [0,  2, 2,  2], [4,  2, 2,  3], [3,  5, 2,  1], [2,  6, 2,  1], [1,  7, 2,  1], [0,  8, 2,  1], [4,  8, 2,  1], [0,  9, 6,  1]],
-    '3' : [[1,  1, 4,  1], [0,  2, 2,  1], [4,  2, 2,  3], [2,  5, 3,  1], [4,  6, 2,  3], [0,  8, 2,  1], [1,  9, 4,  1]],
-    '4' : [[4,  1, 2,  8], [3,  2, 1,  1], [2,  3, 2,  1], [1,  4, 2,  1], [0,  5, 2,  1], [0,  6, 4,  1], [6,  6, 1,  1], [3,  9, 4,  1]],
-    '5' : [[0,  1, 6,  1], [0,  2, 2,  3], [0,  5, 5,  1], [4,  6, 2,  3], [0,  8, 2,  1], [1,  9, 4,  1]],
-    '6' : [[2,  1, 3,  1], [1,  2, 2,  1], [0,  3, 2,  6], [2,  5, 3,  1], [4,  6, 2,  3], [1,  9, 4,  1]],
-    '7' : [[0,  1, 7,  1], [0,  2, 2,  2], [5,  2, 2,  3], [4,  5, 2,  1], [3,  6, 2,  1], [2,  7, 2,  3]],
-    '8' : [[1,  1, 4,  1], [0,  2, 2,  3], [4,  2, 2,  3], [2,  4, 1,  1], [1,  5, 4,  1], [3,  6, 1,  1], [0,  6, 2,  3], [4,  6, 2,  3], [1,  9, 4,  1]],
-    '9' : [[1,  1, 4,  1], [0,  2, 2,  3], [4,  2, 2,  3], [1,  5, 4,  1], [3,  6, 2,  2], [2,  8, 2,  1], [1,  9, 3,  1]],
-    ':' : [[2,  3, 3,  2], [2,  7, 3,  2]],
-    ';' : [[2,  3, 3,  2], [2,  7, 3,  2], [3,  9, 2,  1], [2, 10, 2,  1]],
-    '<' : [[4,  1, 2,  1], [3,  2, 2,  1], [2,  3, 2,  1], [1,  4, 2,  1], [0,  5, 2,  1], [1,  6, 2,  1], [2,  7, 2,  1], [3,  8, 2,  1], [4,  9, 2,  1]],
-    '=' : [[1,  4, 6,  1], [1,  6, 6,  1]],
-    '>' : [[1,  1, 2,  1], [2,  2, 2,  1], [3,  3, 2,  1], [4,  4, 2,  1], [5,  5, 2,  1], [4,  6, 2,  1], [3,  7, 2,  1], [2,  8, 2,  1], [1,  9, 2,  1]],
-    '?' : [[1,  1, 4,  1], [0,  2, 2,  1], [4,  2, 2,  2], [3,  4, 2,  1], [2,  5, 2,  2], [2,  8, 2,  2]],
-    '@' : [[1,  1, 5,  1], [0,  2, 2,  7], [5,  2, 2,  2], [3,  4, 4,  3], [1,  9, 5,  1]],
-    'A' : [[2,  1, 2,  1], [1,  2, 4,  1], [0,  3, 2,  7], [4,  3, 2,  7], [2,  6, 2,  1]],
-    'B' : [[0,  1, 6,  1], [1,  2, 2,  7], [5,  2, 2,  3], [3,  5, 3,  1], [5,  6, 2,  3], [0,  9, 6,  1]],
-    'C' : [[2,  1, 4,  1], [1,  2, 2,  1], [5,  2, 2,  2], [0,  3, 2,  5], [5,  7, 2,  2], [1,  8, 2,  1], [2,  9, 4,  1]],
-    'D' : [[0,  1, 5,  1], [1,  2, 2,  7], [4,  2, 2,  1], [5,  3, 2,  5], [4,  8, 2,  1], [0,  9, 5,  1]],
-    'E' : [[0,  1, 7,  1], [6,  2, 1,  1], [1,  2, 2,  7], [3,  5, 2,  1], [5,  4, 1,  3], [6,  8, 1,  1], [0,  9, 7,  1]],
-    'F' : [[0,  1, 7,  1], [5,  2, 2,  1], [6,  3, 1,  1], [1,  2, 2,  7], [3,  5, 2,  1], [5,  4, 1,  3], [0,  9, 4,  1]],
-    'G' : [[2,  1, 4,  1], [1,  2, 2,  1], [5,  2, 2,  2], [0,  3, 2,  5], [1,  8, 2,  1], [2,  9, 3,  1], [5,  6, 2,  4], [4,  6, 1,  1]],
-    'H' : [[0,  1, 2,  9], [2,  5, 2,  1], [4,  1, 2,  9]],
-    'I' : [[1,  1, 4,  1], [2,  2, 2,  7], [1,  9, 4,  1]],
-    'J' : [[0,  6, 2,  3], [1,  9, 4,  1], [4,  2, 2,  7], [3,  1, 4,  1]],
-    'K' : [[0,  1, 3,  1], [1,  2, 2,  7], [0,  9, 3,  1], [5,  1, 2,  2], [4,  3, 2,  2], [3,  5, 2,  1], [4,  6, 2,  2], [5,  8, 2,  2]],
-    'L' : [[0,  1, 4,  1], [1,  2, 2,  7], [0,  9, 7,  1], [5,  7, 2,  2], [6,  6, 1,  1]],
-    'M' : [[0,  1, 2,  9], [2,  2, 1,  3], [3,  3, 1,  3], [4,  2, 1,  3], [5,  1, 2,  9]],
-    'N' : [[0,  1, 2,  9], [2,  3, 1,  3], [3,  4, 1,  3], [4,  5, 1,  3], [5,  1, 2,  9]],
-    'O' : [[2,  1, 3,  1], [1,  2, 2,  1], [4,  2, 2,  1], [0,  3, 2,  5], [5,  3, 2,  5], [1,  8, 2,  1], [4,  8, 2,  1], [2,  9, 3,  1]],
-    'P' : [[0,  1, 6,  1], [1,  2, 2,  7], [5,  2, 2,  3], [3,  5, 3,  1], [0,  9, 4,  1]],
-    'Q' : [[2,  1, 3,  1], [1,  2, 2,  1], [4,  2, 2,  1], [0,  3, 2,  5], [5,  3, 2,  5], [1,  8, 5,  1], [3,  7, 1,  1], [4,  6, 1,  2], [4,  9, 2,  1], [3, 10, 4,  1]],
-    'R' : [[0,  1, 6,  1], [1,  2, 2,  7], [5,  2, 2,  3], [3,  5, 3,  1], [0,  9, 3,  1], [4,  6, 2,  1], [5,  7, 2,  3]],
-    'S' : [[1,  1, 4,  1], [0,  2, 2,  3], [4,  2, 2,  2], [1,  5, 3,  1], [3,  6, 2,  1], [0,  7, 2,  2], [4,  7, 2,  2], [1,  9, 4,  1]],
-    'T' : [[0,  1, 6,  1], [0,  2, 1,  1], [5,  2, 1,  1], [2,  2, 2,  7], [1,  9, 4,  1]],
-    'U' : [[0,  1, 2,  8], [4,  1, 2,  8], [1,  9, 4,  1]],
-    'V' : [[0,  1, 2,  7], [4,  1, 2,  7], [1,  8, 4,  1], [2,  9, 2,  1]],
-    'W' : [[0,  1, 2,  6], [5,  1, 2,  6], [3,  5, 1,  2], [1,  7, 2,  3], [4,  7, 2,  3]],
-    'X' : [[0,  1, 2,  3], [4,  1, 2,  3], [1,  4, 4,  1], [2,  5, 2,  1], [1,  6, 4,  1], [0,  7, 2,  3], [4,  7, 2,  3]],
-    'Y' : [[0,  1, 2,  4], [4,  1, 2,  4], [1,  5, 4,  1], [2,  6, 2,  3], [1,  9, 4,  1]],
-    'Z' : [[0,  3, 1,  1], [0,  2, 2,  1], [0,  1, 7,  1], [4,  2, 3,  1], [3,  3, 2,  2], [2,  5, 2,  1], [1,  6, 2,  2], [0,  8, 2,  1], [0,  9, 7,  1], [5,  8, 2,  1], [6,  7, 1,  1]],
-    '[' : [[2,  1, 4,  1], [2,  2, 2,  7], [2,  9, 4,  1]],
-    '\\': [[0,  2, 1,  2], [1,  3, 1,  2], [2,  4, 1,  2], [3,  5, 1,  2], [4,  6, 1,  2], [5,  7, 1,  2], [6,  8, 1,  2]],
-    ']' : [[2,  1, 4,  1], [4,  2, 2,  7], [2,  9, 4,  1]],
-    '^' : [[0,  3, 2,  1], [1,  2, 2,  1], [2,  1, 3,  1], [3,  0, 1,  1], [4,  2, 2,  1], [5,  3, 2,  1]],
-    '_' : [[0, 10, 8,  1]],
-    '`' : [[2,  0, 2,  2], [3,  2, 2,  1]],
-    'a' : [[1,  4, 4,  1], [4,  5, 2,  4], [1,  6, 3,  1], [0,  7, 2,  2], [1,  9, 3,  1], [5,  9, 2,  1]],
-    'b' : [[0,  1, 3,  1], [1,  2, 2,  7], [3,  4, 3,  1], [5,  5, 2,  4], [0,  9, 2,  1], [3,  9, 3,  1]],
-    'c' : [[1,  4, 4,  1], [0,  5, 2,  4], [4,  5, 2,  1], [4,  8, 2,  1], [1,  9, 4,  1]],
-    'd' : [[3,  1, 1,  1], [4,  1, 2,  8], [1,  4, 3,  1], [0,  5, 2,  4], [1,  9, 3,  1], [5,  9, 2,  1]],
-    'e' : [[1,  4, 4,  1], [0,  5, 2,  4], [4,  5, 2,  1], [2,  6, 4,  1], [4,  8, 2,  1], [1,  9, 4,  1]],
-    'f' : [[2,  1, 3,  1], [1,  2, 2,  7], [4,  2, 2,  1], [0,  5, 1,  1], [3,  5, 2,  1], [0,  9, 4,  1]],
-    'g' : [[1,  4, 3,  1], [5,  4, 2,  1], [0,  5, 2,  3], [4,  5, 2,  6], [1,  8, 3,  1], [0, 10, 2,  1], [1, 11, 4,  1]],
-    'h' : [[0,  1, 3,  1], [1,  2, 2,  7], [4,  4, 2,  1], [3,  5, 1,  1], [5,  5, 2,  5], [0,  9, 3,  1]],
-    'i' : [[3,  1, 2,  2], [1,  4, 4,  1], [3,  5, 2,  4], [1,  9, 6,  1]],
-    'j' : [[4,  1, 2,  2], [2,  4, 4,  1], [4,  5, 2,  6], [1, 11, 4,  1], [0,  9, 2,  2]],
-    'k' : [[0,  1, 3,  1], [1,  2, 2,  7], [5,  4, 2,  1], [4,  5, 2,  1], [3,  6, 2,  1], [4,  7, 2,  1], [5,  8, 2,  2], [0,  9, 3,  1]],
-    'l' : [[1,  1, 4,  1], [3,  2, 2,  7], [1,  9, 6,  1]],
-    'm' : [[0,  4, 6,  1], [0,  5, 2,  5], [3,  5, 1,  4], [5,  5, 2,  5]],
-    'n' : [[0,  4, 5,  1], [0,  5, 2,  5], [4,  5, 2,  5]],
-    'o' : [[1,  4, 4,  1], [0,  5, 2,  4], [4,  5, 2,  4], [1,  9, 4,  1]],
-    'p' : [[0,  4, 2,  1], [3,  4, 3,  1], [1,  5, 2,  6], [5,  5, 2,  4], [3,  9, 3,  1], [0, 11, 4,  1]],
-    'q' : [[1,  4, 3,  1], [5,  4, 2,  1], [0,  5, 2,  4], [4,  5, 2,  6], [1,  9, 3,  1], [3, 11, 4,  1]],
-    'r' : [[0,  4, 3,  1], [4,  4, 2,  2], [1,  5, 2,  4], [3,  6, 1,  1], [6,  5, 1,  2], [5,  6, 1,  1], [0,  9, 4,  1]],
-    's' : [[1,  4, 4,  1], [0,  5, 2,  1], [4,  5, 2,  1], [1,  6, 2,  1], [3,  7, 2,  1], [0,  8, 2,  1], [4,  8, 2,  1], [1,  9, 4,  1]],
-    't' : [[2,  2, 1,  1], [1,  3, 2,  6], [0,  4, 1,  1], [3,  4, 3,  1], [2,  9, 3,  1], [4,  8, 2,  1]],
-    'u' : [[0,  4, 2,  5], [4,  4, 2,  5], [1,  9, 3,  1], [5,  9, 2,  1]],
-    'v' : [[0,  4, 2,  4], [4,  4, 2,  4], [1,  8, 4,  1], [2,  9, 2,  1]],
-    'w' : [[0,  4, 2,  4], [5,  4, 2,  4], [3,  6, 1,  2], [1,  8, 2,  2], [4,  8, 2,  2]],
-    'x' : [[0,  4, 2,  1], [5,  4, 2,  1], [1,  5, 2,  1], [4,  5, 2,  1], [2,  6, 3,  2], [1,  8, 2,  1], [4,  8, 2,  1], [0,  9, 2,  1], [5,  9, 2,  1]],
-    'y' : [[1,  4, 2,  4], [5,  4, 2,  4], [2,  8, 4,  1], [4,  9, 2,  1], [3, 10, 2,  1], [0, 11, 4,  1]],
-    'z' : [[0,  4, 6,  1], [0,  5, 1,  1], [4,  5, 2,  1], [3,  6, 2,  1], [1,  7, 2,  1], [0,  8, 2,  1], [5,  8, 1,  1], [0,  9, 6,  1]],
-    '{' : [[3,  1, 3,  1], [2,  2, 2,  2], [1,  4, 2,  1], [0,  5, 2,  1], [1,  6, 2,  1], [2,  7, 2,  2], [3,  9, 3,  1]],
-    '|' : [[3,  1, 2,  4], [3,  6, 2,  4]],
-    '}' : [[0,  1, 3,  1], [2,  2, 2,  2], [3,  4, 2,  1], [4,  5, 2,  1], [3,  6, 2,  1], [2,  7, 2,  2], [0,  9, 3,  1]],
-    '~' : [[0,  2, 2,  2], [1,  1, 3,  1], [3,  2, 2,  1], [4,  3, 3,  1], [6,  2, 1,  1], [6,  1, 2,  1]],
-  };
-  
-  /**
-   * @module CanvasRenderingContext2D
-   * 
-   * @example var ctx = someCanvasElement.getContext('2d');
-   * @example ctx.hermesDraw('x', 100, 200); // Draws an 'x' with its top left corner at 100, 200
-   * @example ctx.hermesDraw('Hello world!', 100, 200); // Draws 'Hello world!' starting at 100, 200
-   * @example ctx.hermesDraw('Hello world!', 100, 200, 7); // Draws 'Hello w' starting at 100, 200
-   * @example ctx.hermesDraw('Hello world!', 100, 200, 0); // Draws nothing
-   * @example ctx.hermesDraw('Hello world!', 100, 200, null); // Draws 'Hello world!' starting at 100, 200
-   * @example ctx.hermesDraw('Hello world!', 100, 200, null, rgb('255, 128, 0')); // Draws 'Hello world!' starting at 100, 200 in orange
-   */
-  
-  // @method proto undefined hermesDraw(String text, Number x, Number y, Number maxWidth, String style) -- Draw a string in antique raster font
-  CanvasRenderingContext2D.prototype.hermesDraw = function hermesDraw(text, x, y, maxWidth, style) {
-    text = String(text) || ' ';
-    
-    // If null or undefined, maxWidth defaults to width of text (i.e. no effect)
-    if(maxWidth === undefined || maxWidth === null) {
-      maxWidth = text.length;
-    }
-    maxWidth = Number(maxWidth) || 0;
-    
-    if(text.length <= 0 || maxWidth <= 0) {
-      return;
-    }
-    
-    if(style) {
-      this.fillStyle = style;
-    }
-    
-    if(DRAW_CALLS[text[0]]) {
-      DRAW_CALLS[text[0]].forEach(function(v) {
-        this.fillRect(x + v[0], y + v[1], v[2], v[3]);
-      }, this);
-    }
-    
-    --maxWidth;
-    text = text.substring(1);
-    x += CHAR_WIDTH;
-    this.hermesDraw(text, x, y, maxWidth);
-  }
-  
-  // @method proto undefined hermesRedraw(String text, Number x, Number y, Number maxWidth, String style) -- Draw a string in antique raster font, clearing the area underneath (clear area determined by maxWidth)
-  CanvasRenderingContext2D.prototype.hermesRedraw = function hermesRedraw(text, x, y, maxWidth, style) {
-    this.clearRect(x, y, CHAR_WIDTH*maxWidth, CHAR_HEIGHT);
-    this.hermesDraw(text, x, y, maxWidth, style);
-  }
-  
-  return exports;
-})(); // Module pattern
-
-if(typeof module !== 'undefined' && module !== null && module.exports) {
-  module.exports = HERMES;
-}
-
-},{}],15:[function(require,module,exports){
-(function(root, factory) {
-  if(typeof define === 'function' && define.amd) {
-    // AMD. Register as an anonymous module.
-    define([], factory);
-  }
-  
-  if(typeof exports === 'object') {
-    // Node. Does not work with strict CommonJS, but
-    // only CommonJS-like environments that support module.exports,
-    // like Node.
-    module.exports = factory();
-  }
-  
-  // Browser globals (root is window)
-  root.PersistentWS = factory();
-}(this, function() {
-  /**
-   * @description This script provides a persistent WebSocket that attempts to reconnect after disconnections
-   */
-  
-  /**
-   * @module PersistentWS
-   * @description This is a WebSocket that attempts to reconnect after disconnections
-   * @description Reconnection times start at ~5s, double after each failed attempt, and are randomized +/- 10%
-   * @description Exposes standard WebSocket API (https://developer.mozilla.org/en-US/docs/Web/API/WebSocket)
-   * 
-   * @example var persistentConnection = new PersistentWS('wss://foo.bar/');
-   * @example
-   * @example persistentConnection.addEventListener('message', function(e) {
-   * @example   console.log('Received: ' + e.data);
-   * @example });
-   * @example
-   * @example // Options may be supplied as a *third* parameter, after the rarely-used protocols argument
-   * @example var anotherConnection = new PersistentWS('wss://foo.bar/', undefined, {verbose: true});
-   */
-  var PersistentWS = function PersistentWS(url, protocols, options) {
-    var self = this;
-    
-    // @prop Boolean verbose -- console.log() info about connections and disconnections
-    // @option Boolean verbose -- Sets .verbose
-    this.verbose = Boolean(options && options.verbose) || false;
-    
-    // @prop Number initialRetryTime -- Delay for first retry attempt, in milliseconds. Always an integer >= 100
-    // @option Number initialRetryTime -- Sets .initialRetryTime
-    this.initialRetryTime = Number(options && options.initialRetryTime) || 5000;
-    
-    // @prop Boolean persistence -- If false, disables reconnection
-    // @option Boolean persistence -- Sets .persistence
-    this.persistence = options === undefined || options.persistence === undefined || Boolean(options.persistence);
-    
-    // @prop Number attempts -- Retry attempt # since last disconnect
-    this.attempts = 0;
-    
-    // @prop WebSocket socket -- The actual WebSocket. Events registered directly to the raw socket will be lost after reconnections
-    this.socket = {};
-    
-    // @method undefined _onopen(Event e) -- For internal use. Calls to .onopen() and handles reconnection cleanup
-    this._onopen = function(e) {
-      if(self.onopen) {
-        self.onopen(e);
-      }
-    }
-    
-    // @method undefined _onmessage(Event e) -- For internal use. Calls to .onmessage()
-    this._onmessage = function(e) {
-      if(self.onmessage) {
-        self.onmessage(e);
-      }
-    }
-    
-    // @method undefined _onerror(Error e) -- For internal use. Calls to .onerror()
-    this._onerror = function(e) {
-      if(self.onerror) {
-        self.onerror(e);
-      }
-    }
-    
-    // @method undefined _onclose(Event e) -- For internal use. Calls to .onclose() and ._reconnect() where appropriate
-    this._onclose = function(e) {
-      if(self.persistence) {
-        self._reconnect();
-      }
-      
-      if(self.onclose) {
-        self.onclose(e);
-      }
-    }
-    
-    // @prop [[String, Function, Boolean]] _listeners -- For internal use. Array of .addEventListener arguments
-    this._listeners = [
-      ['open', this._onopen],
-      ['message', this._onmessage],
-      ['error', this._onerror],
-      ['close', this._onclose]
-    ];
-    
-    // @method undefined _connect() -- For internal use. Connects and copies in event listeners
-    this._connect = function _connect() {
-      if(self.verbose) {
-        console.log('Opening WebSocket to ' + url);
-      }
-      
-      var binaryType = self.socket.binaryType;
-      
-      self.socket = new WebSocket(url, protocols);
-      
-      self.socket.binaryType = binaryType || self.socket.binaryType;
-      
-      // Reset .attempts counter on successful connection
-      self.socket.addEventListener('open', function() {
-        if(self.verbose) {
-          console.log('WebSocket connected to ' + self.url);
-        }
-        
-        self.attempts = 0;
-      });
-      
-      self._listeners.forEach(function(v) {
-        self.socket.addEventListener.apply(self.socket, v);
-      });
-    }
-    
-    this._connect();
-  }
-  
-  PersistentWS.CONNECTING = WebSocket.CONNECTING;
-  PersistentWS.OPEN       = WebSocket.OPEN;
-  PersistentWS.CLOSING    = WebSocket.CLOSING;
-  PersistentWS.CLOSED     = WebSocket.CLOSED;
-  
-  PersistentWS.prototype.CONNECTING = WebSocket.CONNECTING;
-  PersistentWS.prototype.OPEN       = WebSocket.OPEN;
-  PersistentWS.prototype.CLOSING    = WebSocket.CLOSING;
-  PersistentWS.prototype.CLOSED     = WebSocket.CLOSED;
-  
-  var webSocketProperties = ['binaryType', 'bufferedAmount', 'extensions', 'protocol', 'readyState', 'url'];
-  
-  webSocketProperties.forEach(function(v) {
-    Object.defineProperty(PersistentWS.prototype, v, {
-      get: function() {
-        return this.socket[v];
-      },
-      set: function(x) {
-        return (this.socket[v] = x);
-      }
-    });
-  });
-  
-  PersistentWS.prototype.close = function(code, reason) {
-    this.socket.close(code, reason);
-  }
-  
-  PersistentWS.prototype.send = function(data) {
-    this.socket.send(data);
-  }
-  
-  PersistentWS.prototype.addEventListener = function addEventListener(type, listener, useCapture) {
-    this.socket.addEventListener(type, listener, useCapture);
-    
-    var alreadyStored = this._getListenerIndex(type, listener, useCapture) !== -1;
-    
-    if(!alreadyStored) {
-      // Store optional parameter useCapture as Boolean, for consistency with
-      // https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/removeEventListener
-      var useCaptureBoolean = Boolean(useCapture);
-      
-      this._listeners.push([type, listener, useCaptureBoolean]);
-    }
-  }
-  
-  PersistentWS.prototype.removeEventListener = function removeEventListener(type, listener, useCapture) {
-    this.socket.removeEventListener(type, listener, useCapture);
-    
-    var indexToRemove = this._getListenerIndex(type, listener, useCapture);
-    
-    if(indexToRemove !== -1) {
-      this._listeners.splice(indexToRemove, 1);
-    }
-  }
-  
-  // @method proto Boolean dispatchEvent(Event event) -- Same as calling .dispatchEvent() on .socket
-  PersistentWS.prototype.dispatchEvent = function(event) {
-    return this.socket.dispatchEvent(event);
-  }
-  
-  // @method proto Number _getListenerIndex(String type, Function listener[, Boolean useCapture]) -- For internal use. Returns index of a listener in ._listeners
-  PersistentWS.prototype._getListenerIndex = function _getListenerIndex(type, listener, useCapture) {
-    // Store optional parameter useCapture as Boolean, for consistency with
-    // https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/removeEventListener
-    var useCaptureBoolean = Boolean(useCapture);
-    
-    var result = -1;
-    
-    this._listeners.forEach(function(v, i) {
-      if(v[0] === type && v[1] === listener && v[2] === useCaptureBoolean) {
-        result = i;
-      }
-    });
-    
-    return result;
-  }
-  
-  // @method proto undefined _reconnect() -- For internal use. Begins the reconnection timer
-  PersistentWS.prototype._reconnect = function() {
-    // Retty time falls of exponentially
-    var retryTime = this.initialRetryTime*Math.pow(2, this.attempts++);
-    
-    // Retry time is randomized +/- 10% to prevent clients reconnecting at the exact same time after a server event
-    retryTime += Math.floor(Math.random()*retryTime/5 - retryTime/10);
-    
-    if(this.verbose) {
-      console.log('WebSocket disconnected, attempting to reconnect in ' + retryTime + 'ms...');
-    }
-    
-    setTimeout(this._connect, retryTime);
-  }
-  
-  // Only one object to return, so no need for module object to hold it
-  return PersistentWS;
-})); // Module pattern
-
-},{}],16:[function(require,module,exports){
-(function (Buffer){
-var _ = {};
-
-if (Buffer([255]).readUInt32BE(0, true) !== 0xff000000) {
-    throw Error("Runtime incompatibility! Bitfield logic assumes 0-padded reads off end of buffer.");
-}
-
-function extend(obj) {
-    Array.prototype.slice.call(arguments, 1).forEach(function (ext) {
-        Object.keys(ext).forEach(function (key) {
-            obj[key] = ext[key];
-        });
-    });
-    return obj;
-}
-
-function addField(ctr, f) {
-    if ('width' in f) {
-        ctr.bits = (ctr.bits || 0) + f.width;
-        while (ctr.bits > 7) {
-            ctr.bytes += 1;
-            ctr.bits -= 8;
-        }
-    } else if (!ctr.bits) {
-        ctr.bytes += f.size;
-    } else {
-        throw Error("Improperly aligned bitfield before field: "+f.name);
-    }
-    return ctr;
-}
-
-function arrayizeField(f, count) {
-    var f2 = (typeof count === 'number') ? extend({
-        name: f.name,
-        field: f,
-        valueFromBytes: function (buf, off) {
-            off || (off = {bytes:0, bits:0});
-            var arr = new Array(count);
-            for (var idx = 0, len = arr.length; idx < len; idx += 1) {
-                arr[idx] = f.valueFromBytes(buf, off);
-            }
-            return arr;
-        },
-        bytesFromValue: function (arr, buf, off) {
-            arr || (arr = new Array(count));
-            buf || (buf = new Buffer(this.size));
-            off || (off = {bytes:0, bits:0});
-            for (var idx = 0, len = arr.length; idx < len; idx += 1) {
-                f.bytesFromValue(arr[idx], buf, off);
-            }
-            while (idx++ < count) addField(off, f);
-            return buf;
-        }
-    }, ('width' in f) ? {width: f.width * count} : {size: f.size * count}) : f;
-    f2.pack = f2.bytesFromValue;
-    f2.unpack = f2.valueFromBytes;
-    return f2;
-}
-
-_.struct = function (name, fields, count) {
-    if (typeof name !== 'string') {
-        count = fields;
-        fields = name;
-        name = null;
-    }
-    
-    var _size = {bytes:0, bits:0},
-        _padsById = Object.create(null),
-        fieldsObj = fields.reduce(function (obj, f, i) {
-            if ('_padTo' in f) {
-                // HACK: we really should just make local copy of *all* fields
-                f._id || (f._id = 'id'+Math.random().toFixed(20).slice(2));      // WORKAROUND: https://github.com/tessel/runtime/issues/716
-                var _f = _padsById[f._id] = (_size.bits) ? {
-                    width: 8*(f._padTo - _size.bytes) - _size.bits
-                } : {
-                    size: f._padTo - _size.bytes
-                };
-                if (_f.width < 0 || _f.size < 0) {
-                    var xtraMsg = (_size.bits) ? (" and "+_size.bits+" bits") : '';
-                    throw Error("Invalid .padTo("+f._padTo+") field, struct is already "+_size.bytes+" byte(s)"+xtraMsg+"!");
-                }
-                f = _f;
-            }
-            else if (f._hoistFields) Object.keys(f._hoistFields).forEach(function (name) {
-                var _f = Object.create(f._hoistFields[name]);
-                if ('width' in _f) _f.offset = {bytes:_f.offset.bytes+_size.bytes, bits:_f.offset.bits};
-                else _f.offset += _size.bytes;
-                obj[name] = _f;
-            });
-            else if (f.name) {
-                f = Object.create(f);           // local overrides
-                f.offset = ('width' in f) ? {bytes:_size.bytes,bits:_size.bits} : _size.bytes,
-                obj[f.name] = f;
-            }
-            addField(_size, f);
-            return obj;
-        }, {});
-    if (_size.bits) throw Error("Improperly aligned bitfield at end of struct: "+name);
-    
-    return arrayizeField({
-        valueFromBytes: function (buf, off) {
-            off || (off = {bytes:0, bits:0});
-            var obj = new Object();
-            fields.forEach(function (f) {
-                if ('_padTo' in f) return addField(off, _padsById[f._id]);
-                
-                var value = f.valueFromBytes(buf, off);
-                if (f.name) obj[f.name] = value;
-                else if (typeof value === 'object') extend(obj, value);
-            });
-            return obj;
-        },
-        bytesFromValue: function (obj, buf, off) {
-            obj || (obj = {});
-            buf || (buf = new Buffer(this.size));
-            off || (off = {bytes:0, bits:0});
-            fields.forEach(function (f) {
-                if ('_padTo' in f) return addField(off, _padsById[f._id]);
-                
-                var value = (f.name) ? obj[f.name] : obj;
-                f.bytesFromValue(value, buf, off);
-            });
-            return buf;
-        },
-        _hoistFields: (!name) ? fieldsObj : null,
-        fields: fieldsObj,
-        size: _size.bytes,
-        name: name
-    }, count);
-};
-
-_.padTo = function (off) {
-    return {_padTo:off};
-};
-
-
-// NOTE: bitfields must be embedded in a struct (C/C++ share this limitation)
-
-var FULL = 0xFFFFFFFF;
-function bitfield(name, width, count) {
-    width || (width = 1);
-    // NOTE: width limitation is so all values will align *within* a 4-byte word
-    if (width > 24) throw Error("Bitfields support a maximum width of 24 bits.");
-    var impl = this,
-        mask = FULL >>> (32 - width);
-    return arrayizeField({
-        valueFromBytes: function (buf, off) {
-            off || (off = {bytes:0, bits:0});
-            var end = (off.bits || 0) + width,
-                word = buf.readUInt32BE(off.bytes, true) || 0,
-                over = word >>> (32 - end);
-            addField(off, this);
-            return impl.b2v.call(this, over & mask);
-        },
-        bytesFromValue: function (val, buf, off) {
-            val = impl.v2b.call(this, val || 0);
-            off || (off = {bytes:0, bits:0});
-            var end = (off.bits || 0) + width,
-                word = buf.readUInt32BE(off.bytes, true) || 0,
-                zero = mask << (32 - end),
-                over = (val & mask) << (32 - end);
-            word &= ~zero;
-            word |= over;
-            word >>>= 0;      // WORKAROUND: https://github.com/tessel/runtime/issues/644
-            buf.writeUInt32BE(word, off.bytes, true);
-            addField(off, this);
-            return buf;
-        },
-        width: width,
-        name: name
-    }, count);
-}
-
-function swapBits(n, w) {
-    var o = 0;
-    while (w--) {
-        o <<= 1;
-        o |= n & 1;
-        n >>>= 1;
-    }
-    return o;
-}
-
-
-_.bool = function (name, count) {
-    return bitfield.call({
-        b2v: function (b) { return Boolean(b); },
-        v2b: function (v) { return (v) ? FULL : 0; }
-    }, name, 1, count);
-
-};
-_.ubit = bitfield.bind({
-    b2v: function (b) { return b; },
-    v2b: function (v) { return v; }
-});
-_.ubitLE = bitfield.bind({
-    b2v: function (b) { return swapBits(b, this.width); },
-    v2b: function (v) { return swapBits(v, this.width); }
-});
-_.sbit = bitfield.bind({        // TODO: handle sign bit…
-    b2v: function (b) {
-        var m = 1 << (this.width-1),
-            s = b & m;
-        return (s) ? -(b &= ~m) : b;
-    },
-    v2b: function (v) {
-        var m = 1 << (this.width-1),
-            s = (v < 0);
-        return (s) ? (-v | m) : v;
-    }
-});
-
-
-function bytefield(name, size, count) {
-    if (typeof name !== 'string') {
-        count = size;
-        size = name;
-        name = null;
-    }
-    size = (typeof size === 'number') ? size : 1;
-    var impl = this;
-    return arrayizeField({
-        valueFromBytes: function (buf, off) {
-            off || (off = {bytes:0, bits:0});
-            var val = buf.slice(off.bytes, off.bytes+this.size);
-            addField(off, this);
-            return impl.b2v.call(this, val);
-        },
-        bytesFromValue: function (val, buf, off) {
-            off || (off = {bytes:0});
-            buf || (buf = new Buffer(this.size));
-            var blk = buf.slice(off.bytes, off.bytes+this.size),
-                len = impl.vTb.call(this, val, blk);
-            if (len < blk.length) blk.fill(0, len);
-            addField(off, this);
-            return buf;
-        },
-        size: size,
-        name: name
-    }, count);
-}
-
-
-_.byte = bytefield.bind({
-    b2v: function (b) { return b; },
-    vTb: function (v,b) { if (!v) return 0; v.copy(b); return v.length; }
-});
-
-_.char = bytefield.bind({
-    b2v: function (b) {
-        var v = b.toString('utf8'),
-            z = v.indexOf('\0');
-        return (~z) ? v.slice(0, z) : v;
-    },
-    vTb: function (v,b) {
-        v || (v = '');
-        return b.write(v, 'utf8');
-    }
-});
-
-_.char16le = bytefield.bind({
-    b2v: function (b) {
-        var v = b.toString('utf16le'),
-            z = v.indexOf('\0');
-        return (~z) ? v.slice(0, z) : v;
-    },
-    vTb: function (v,b) {
-        v || (v = '');
-        return b.write(v, 'utf16le');
-    }
-});
-
-
-function standardField(sig, size) {
-    var read = 'read'+sig,
-        dump = 'write'+sig;
-    size || (size = +sig.match(/\d+/)[0] >> 3);
-    return function (name, count) {
-        if (typeof name !== 'string') {
-            count = name;
-            name = null;
-        }
-        return arrayizeField({
-            valueFromBytes: function (buf, off) {
-                off || (off = {bytes:0});
-                var val = buf[read](off.bytes);
-                addField(off, this);
-                return val;
-            },
-            bytesFromValue: function (val, buf, off) {
-                val || (val = 0);
-                buf || (buf = new Buffer(this.size));
-                off || (off = {bytes:0});
-                buf[dump](val, off.bytes);
-                addField(off, this);
-                return buf;
-            },
-            size: size,
-            name: name
-        }, count);
-    };
-}
-
-_.float32 = standardField('FloatBE',4);
-_.float64 = standardField('DoubleBE',8);
-_.float32le = standardField('FloatLE',4);
-_.float64le = standardField('DoubleLE',8);
-
-_.uint8 = standardField('UInt8');
-_.uint16 = standardField('UInt16BE');
-_.uint32 = standardField('UInt32BE');
-_.uint16le = standardField('UInt16LE');
-_.uint32le = standardField('UInt32LE');
-
-_.int8 = standardField('Int8');
-_.int16 = standardField('Int16BE');
-_.int32 = standardField('Int32BE');
-_.int16le = standardField('Int16LE');
-_.int32le = standardField('Int32LE');
-
-module.exports = _;
-
-}).call(this,require("buffer").Buffer)
-},{"buffer":17}],17:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -3380,31 +2661,35 @@ var rootParent = {}
  * Browsers that support typed arrays are IE 10+, Firefox 4+, Chrome 7+, Safari 5.1+,
  * Opera 11.6+, iOS 4.2+.
  *
+ * Due to various browser bugs, sometimes the Object implementation will be used even
+ * when the browser supports typed arrays.
+ *
  * Note:
  *
- * - Implementation must support adding new properties to `Uint8Array` instances.
- *   Firefox 4-29 lacked support, fixed in Firefox 30+.
- *   See: https://bugzilla.mozilla.org/show_bug.cgi?id=695438.
+ *   - Firefox 4-29 lacks support for adding new properties to `Uint8Array` instances,
+ *     See: https://bugzilla.mozilla.org/show_bug.cgi?id=695438.
  *
- *  - Chrome 9-10 is missing the `TypedArray.prototype.subarray` function.
+ *   - Safari 5-7 lacks support for changing the `Object.prototype.constructor` property
+ *     on objects.
  *
- *  - IE10 has a broken `TypedArray.prototype.subarray` function which returns arrays of
- *    incorrect length in some situations.
+ *   - Chrome 9-10 is missing the `TypedArray.prototype.subarray` function.
  *
- * We detect these buggy browsers and set `Buffer.TYPED_ARRAY_SUPPORT` to `false` so they will
- * get the Object implementation, which is slower but will work correctly.
+ *   - IE10 has a broken `TypedArray.prototype.subarray` function which returns arrays of
+ *     incorrect length in some situations.
+
+ * We detect these buggy browsers and set `Buffer.TYPED_ARRAY_SUPPORT` to `false` so they
+ * get the Object implementation, which is slower but behaves correctly.
  */
 Buffer.TYPED_ARRAY_SUPPORT = (function () {
-  function Foo () {}
+  function Bar () {}
   try {
-    var buf = new ArrayBuffer(0)
-    var arr = new Uint8Array(buf)
+    var arr = new Uint8Array(1)
     arr.foo = function () { return 42 }
-    arr.constructor = Foo
+    arr.constructor = Bar
     return arr.foo() === 42 && // typed array instances can be augmented
-        arr.constructor === Foo && // constructor can be set
+        arr.constructor === Bar && // constructor can be set
         typeof arr.subarray === 'function' && // chrome 9-10 lack `subarray`
-        new Uint8Array(1).subarray(1, 1).byteLength === 0 // ie10 has broken `subarray`
+        arr.subarray(1, 1).byteLength === 0 // ie10 has broken `subarray`
   } catch (e) {
     return false
   }
@@ -3482,8 +2767,13 @@ function fromObject (that, object) {
     throw new TypeError('must start with number, buffer, array or string')
   }
 
-  if (typeof ArrayBuffer !== 'undefined' && object.buffer instanceof ArrayBuffer) {
-    return fromTypedArray(that, object)
+  if (typeof ArrayBuffer !== 'undefined') {
+    if (object.buffer instanceof ArrayBuffer) {
+      return fromTypedArray(that, object)
+    }
+    if (object instanceof ArrayBuffer) {
+      return fromArrayBuffer(that, object)
+    }
   }
 
   if (object.length) return fromArrayLike(that, object)
@@ -3516,6 +2806,18 @@ function fromTypedArray (that, array) {
   // of the old Buffer constructor.
   for (var i = 0; i < length; i += 1) {
     that[i] = array[i] & 255
+  }
+  return that
+}
+
+function fromArrayBuffer (that, array) {
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    // Return an augmented `Uint8Array` instance, for best performance
+    array.byteLength
+    that = Buffer._augment(new Uint8Array(array))
+  } else {
+    // Fallback: Return an object instance of the Buffer class
+    that = fromTypedArray(that, new Uint8Array(array))
   }
   return that
 }
@@ -3637,8 +2939,6 @@ Buffer.concat = function concat (list, length) {
 
   if (list.length === 0) {
     return new Buffer(0)
-  } else if (list.length === 1) {
-    return list[0]
   }
 
   var i
@@ -3813,13 +3113,13 @@ Buffer.prototype.indexOf = function indexOf (val, byteOffset) {
   throw new TypeError('val must be string, number or Buffer')
 }
 
-// `get` will be removed in Node 0.13+
+// `get` is deprecated
 Buffer.prototype.get = function get (offset) {
   console.log('.get() is deprecated. Access using array indexes instead.')
   return this.readUInt8(offset)
 }
 
-// `set` will be removed in Node 0.13+
+// `set` is deprecated
 Buffer.prototype.set = function set (v, offset) {
   console.log('.set() is deprecated. Access using array indexes instead.')
   return this.writeUInt8(v, offset)
@@ -3960,20 +3260,99 @@ function base64Slice (buf, start, end) {
 }
 
 function utf8Slice (buf, start, end) {
-  var res = ''
-  var tmp = ''
   end = Math.min(buf.length, end)
+  var res = []
 
-  for (var i = start; i < end; i++) {
-    if (buf[i] <= 0x7F) {
-      res += decodeUtf8Char(tmp) + String.fromCharCode(buf[i])
-      tmp = ''
-    } else {
-      tmp += '%' + buf[i].toString(16)
+  var i = start
+  while (i < end) {
+    var firstByte = buf[i]
+    var codePoint = null
+    var bytesPerSequence = (firstByte > 0xEF) ? 4
+      : (firstByte > 0xDF) ? 3
+      : (firstByte > 0xBF) ? 2
+      : 1
+
+    if (i + bytesPerSequence <= end) {
+      var secondByte, thirdByte, fourthByte, tempCodePoint
+
+      switch (bytesPerSequence) {
+        case 1:
+          if (firstByte < 0x80) {
+            codePoint = firstByte
+          }
+          break
+        case 2:
+          secondByte = buf[i + 1]
+          if ((secondByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0x1F) << 0x6 | (secondByte & 0x3F)
+            if (tempCodePoint > 0x7F) {
+              codePoint = tempCodePoint
+            }
+          }
+          break
+        case 3:
+          secondByte = buf[i + 1]
+          thirdByte = buf[i + 2]
+          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0xF) << 0xC | (secondByte & 0x3F) << 0x6 | (thirdByte & 0x3F)
+            if (tempCodePoint > 0x7FF && (tempCodePoint < 0xD800 || tempCodePoint > 0xDFFF)) {
+              codePoint = tempCodePoint
+            }
+          }
+          break
+        case 4:
+          secondByte = buf[i + 1]
+          thirdByte = buf[i + 2]
+          fourthByte = buf[i + 3]
+          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80 && (fourthByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0xF) << 0x12 | (secondByte & 0x3F) << 0xC | (thirdByte & 0x3F) << 0x6 | (fourthByte & 0x3F)
+            if (tempCodePoint > 0xFFFF && tempCodePoint < 0x110000) {
+              codePoint = tempCodePoint
+            }
+          }
+      }
     }
+
+    if (codePoint === null) {
+      // we did not generate a valid codePoint so insert a
+      // replacement char (U+FFFD) and advance only 1 byte
+      codePoint = 0xFFFD
+      bytesPerSequence = 1
+    } else if (codePoint > 0xFFFF) {
+      // encode to utf16 (surrogate pair dance)
+      codePoint -= 0x10000
+      res.push(codePoint >>> 10 & 0x3FF | 0xD800)
+      codePoint = 0xDC00 | codePoint & 0x3FF
+    }
+
+    res.push(codePoint)
+    i += bytesPerSequence
   }
 
-  return res + decodeUtf8Char(tmp)
+  return decodeCodePointsArray(res)
+}
+
+// Based on http://stackoverflow.com/a/22747272/680742, the browser with
+// the lowest limit is Chrome, with 0x10000 args.
+// We go 1 magnitude less, for safety
+var MAX_ARGUMENTS_LENGTH = 0x1000
+
+function decodeCodePointsArray (codePoints) {
+  var len = codePoints.length
+  if (len <= MAX_ARGUMENTS_LENGTH) {
+    return String.fromCharCode.apply(String, codePoints) // avoid extra slice()
+  }
+
+  // Decode in chunks to avoid "call stack size exceeded".
+  var res = ''
+  var i = 0
+  while (i < len) {
+    res += String.fromCharCode.apply(
+      String,
+      codePoints.slice(i, i += MAX_ARGUMENTS_LENGTH)
+    )
+  }
+  return res
 }
 
 function asciiSlice (buf, start, end) {
@@ -4508,9 +3887,16 @@ Buffer.prototype.copy = function copy (target, targetStart, start, end) {
   }
 
   var len = end - start
+  var i
 
-  if (len < 1000 || !Buffer.TYPED_ARRAY_SUPPORT) {
-    for (var i = 0; i < len; i++) {
+  if (this === target && start < targetStart && targetStart < end) {
+    // descending copy from end
+    for (i = len - 1; i >= 0; i--) {
+      target[i + targetStart] = this[i + start]
+    }
+  } else if (len < 1000 || !Buffer.TYPED_ARRAY_SUPPORT) {
+    // ascending copy from start
+    for (i = 0; i < len; i++) {
       target[i + targetStart] = this[i + start]
     }
   } else {
@@ -4586,7 +3972,7 @@ Buffer._augment = function _augment (arr) {
   // save reference to original Uint8Array set method before overwriting
   arr._set = arr.set
 
-  // deprecated, will be removed in node 0.13+
+  // deprecated
   arr.get = BP.get
   arr.set = BP.set
 
@@ -4642,7 +4028,7 @@ Buffer._augment = function _augment (arr) {
   return arr
 }
 
-var INVALID_BASE64_RE = /[^+\/0-9A-z\-]/g
+var INVALID_BASE64_RE = /[^+\/0-9A-Za-z-_]/g
 
 function base64clean (str) {
   // Node strips out invalid characters like \n and \t from the string, base64-js does not
@@ -4672,28 +4058,15 @@ function utf8ToBytes (string, units) {
   var length = string.length
   var leadSurrogate = null
   var bytes = []
-  var i = 0
 
-  for (; i < length; i++) {
+  for (var i = 0; i < length; i++) {
     codePoint = string.charCodeAt(i)
 
     // is surrogate component
     if (codePoint > 0xD7FF && codePoint < 0xE000) {
       // last char was a lead
-      if (leadSurrogate) {
-        // 2 leads in a row
-        if (codePoint < 0xDC00) {
-          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
-          leadSurrogate = codePoint
-          continue
-        } else {
-          // valid surrogate pair
-          codePoint = leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00 | 0x10000
-          leadSurrogate = null
-        }
-      } else {
+      if (!leadSurrogate) {
         // no lead yet
-
         if (codePoint > 0xDBFF) {
           // unexpected trail
           if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
@@ -4702,17 +4075,29 @@ function utf8ToBytes (string, units) {
           // unpaired lead
           if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
           continue
-        } else {
-          // valid lead
-          leadSurrogate = codePoint
-          continue
         }
+
+        // valid lead
+        leadSurrogate = codePoint
+
+        continue
       }
+
+      // 2 leads in a row
+      if (codePoint < 0xDC00) {
+        if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+        leadSurrogate = codePoint
+        continue
+      }
+
+      // valid surrogate pair
+      codePoint = leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00 | 0x10000
     } else if (leadSurrogate) {
       // valid bmp char, but last char was a lead
       if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
-      leadSurrogate = null
     }
+
+    leadSurrogate = null
 
     // encode utf8
     if (codePoint < 0x80) {
@@ -4731,7 +4116,7 @@ function utf8ToBytes (string, units) {
         codePoint >> 0x6 & 0x3F | 0x80,
         codePoint & 0x3F | 0x80
       )
-    } else if (codePoint < 0x200000) {
+    } else if (codePoint < 0x110000) {
       if ((units -= 4) < 0) break
       bytes.push(
         codePoint >> 0x12 | 0xF0,
@@ -4784,15 +4169,7 @@ function blitBuffer (src, dst, offset, length) {
   return i
 }
 
-function decodeUtf8Char (str) {
-  try {
-    return decodeURIComponent(str)
-  } catch (err) {
-    return String.fromCharCode(0xFFFD) // UTF 8 invalid char
-  }
-}
-
-},{"base64-js":18,"ieee754":19,"is-array":20}],18:[function(require,module,exports){
+},{"base64-js":15,"ieee754":16,"is-array":17}],15:[function(require,module,exports){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 ;(function (exports) {
@@ -4918,7 +4295,7 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 	exports.fromByteArray = uint8ToBase64
 }(typeof exports === 'undefined' ? (this.base64js = {}) : exports))
 
-},{}],19:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -5004,7 +4381,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],20:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 
 /**
  * isArray
@@ -5039,4 +4416,723 @@ module.exports = isArray || function (val) {
   return !! val && '[object Array]' == str.call(val);
 };
 
-},{}]},{},[3]);
+},{}],18:[function(require,module,exports){
+/**
+ * @description This is essentilly a hackish raster font for html canvases
+ * @description Characters are 8 pixels wide; lines are 12 pixels high
+ * @description Adds two methods to the browser's CanvasRenderingContext2D prototype
+ */
+
+/**
+ * @module HERMES
+ */
+var HERMES = (function() { // Module pattern
+  var exports = {};
+  
+  // @prop Number CHAR_WIDTH -- Width of a char. Is 8
+  var CHAR_WIDTH = exports.CHAR_WIDTH = 8;
+  
+  // @prop Number CHAR_HEIGHT -- Height of a char. Is 12
+  var CHAR_HEIGHT = exports.CHAR_HEIGHT = 12;
+  
+  // @prop Object DRAW_CALLS -- Holds coordinates used in .fillRect() calls for each ascii character
+  var DRAW_CALLS = exports.DRAW_CALLS = {
+    ' ' : [],
+    '!' : [[1,  2, 1,  3], [2,  1, 2,  6], [2,  8, 2,  2], [4,  2, 1,  3]],
+    '"' : [[1,  1, 2,  3], [2,  4, 1,  1], [5,  1, 2,  3], [5,  4, 1,  1]],
+    '#' : [[0,  3, 7,  1], [0,  7, 7,  1], [1,  1, 2,  2], [1,  4, 2,  3], [1,  8, 2,  2], [4,  1, 2,  2], [4,  4, 2,  3], [4,  8, 2,  2]],
+    '$' : [[2,  0, 2,  2], [1,  2, 5,  1], [0,  3, 2,  2], [1,  5, 4,  1], [4,  6, 2,  2], [0,  8, 5,  1], [2,  9, 2,  2]],
+    '%' : [[0,  3, 2,  2], [5,  3, 1,  1], [4,  4, 2,  1], [3,  5, 2,  1], [2,  6, 2,  1], [1,  7, 2,  1], [0,  8, 2,  1], [0,  9, 1,  1], [4,  8, 2,  2]],
+    '&' : [[1,  1, 3,  1], [0,  2, 2,  2], [3,  2, 2,  2], [1,  4, 3,  1], [0,  5, 2,  4], [2,  5, 3,  1], [3,  6, 4,  1], [6,  5, 1,  1], [4,  7, 2,  2], [3,  8, 1,  1], [1,  9, 3,  1], [5,  9, 2,  1]],
+    '\'': [[2,  1, 2,  3], [1,  4, 2,  1]],
+    '(' : [[4,  1, 2,  1], [3,  2, 2,  1], [2,  3, 2,  5], [3,  8, 2,  1], [4,  9, 2,  1]],
+    ')' : [[2,  1, 2,  1], [3,  2, 2,  1], [4,  3, 2,  5], [3,  8, 2,  1], [2,  9, 2,  1]],
+    '*' : [[1,  3, 2,  1], [5,  3, 2,  1], [2,  4, 4,  1], [0,  5, 8,  1], [2,  6, 4,  1], [1,  7, 2,  1], [5,  7, 2,  1]],
+    '+' : [[3,  3, 2,  2], [1,  5, 6,  1], [3,  6, 2,  2]],
+    ',' : [[2,  8, 3,  2], [1,  10, 2,  1]],
+    '-' : [[0,  5, 7,  1]],
+    '.' : [[2,  8, 3,  2]],
+    '/' : [[6,  2, 1,  1], [5,  3, 2,  1], [4,  4, 2,  1], [3,  5, 2,  1], [2,  6, 2,  1], [1,  7, 2,  1], [0,  8, 2,  1], [0,  9, 1,  1]],
+    '0' : [[1,  1, 5,  1], [0,  2, 2,  7], [2,  6, 1,  2], [3,  4, 1,  3], [4,  3, 1,  2], [5,  2, 2,  7], [1,  9, 5,  1]],
+    '1' : [[0,  3, 2,  1], [2,  2, 2,  7], [3,  1, 1,  1], [0,  9, 6,  1]],
+    '2' : [[1,  1, 4,  1], [0,  2, 2,  2], [4,  2, 2,  3], [3,  5, 2,  1], [2,  6, 2,  1], [1,  7, 2,  1], [0,  8, 2,  1], [4,  8, 2,  1], [0,  9, 6,  1]],
+    '3' : [[1,  1, 4,  1], [0,  2, 2,  1], [4,  2, 2,  3], [2,  5, 3,  1], [4,  6, 2,  3], [0,  8, 2,  1], [1,  9, 4,  1]],
+    '4' : [[4,  1, 2,  8], [3,  2, 1,  1], [2,  3, 2,  1], [1,  4, 2,  1], [0,  5, 2,  1], [0,  6, 4,  1], [6,  6, 1,  1], [3,  9, 4,  1]],
+    '5' : [[0,  1, 6,  1], [0,  2, 2,  3], [0,  5, 5,  1], [4,  6, 2,  3], [0,  8, 2,  1], [1,  9, 4,  1]],
+    '6' : [[2,  1, 3,  1], [1,  2, 2,  1], [0,  3, 2,  6], [2,  5, 3,  1], [4,  6, 2,  3], [1,  9, 4,  1]],
+    '7' : [[0,  1, 7,  1], [0,  2, 2,  2], [5,  2, 2,  3], [4,  5, 2,  1], [3,  6, 2,  1], [2,  7, 2,  3]],
+    '8' : [[1,  1, 4,  1], [0,  2, 2,  3], [4,  2, 2,  3], [2,  4, 1,  1], [1,  5, 4,  1], [3,  6, 1,  1], [0,  6, 2,  3], [4,  6, 2,  3], [1,  9, 4,  1]],
+    '9' : [[1,  1, 4,  1], [0,  2, 2,  3], [4,  2, 2,  3], [1,  5, 4,  1], [3,  6, 2,  2], [2,  8, 2,  1], [1,  9, 3,  1]],
+    ':' : [[2,  3, 3,  2], [2,  7, 3,  2]],
+    ';' : [[2,  3, 3,  2], [2,  7, 3,  2], [3,  9, 2,  1], [2, 10, 2,  1]],
+    '<' : [[4,  1, 2,  1], [3,  2, 2,  1], [2,  3, 2,  1], [1,  4, 2,  1], [0,  5, 2,  1], [1,  6, 2,  1], [2,  7, 2,  1], [3,  8, 2,  1], [4,  9, 2,  1]],
+    '=' : [[1,  4, 6,  1], [1,  6, 6,  1]],
+    '>' : [[1,  1, 2,  1], [2,  2, 2,  1], [3,  3, 2,  1], [4,  4, 2,  1], [5,  5, 2,  1], [4,  6, 2,  1], [3,  7, 2,  1], [2,  8, 2,  1], [1,  9, 2,  1]],
+    '?' : [[1,  1, 4,  1], [0,  2, 2,  1], [4,  2, 2,  2], [3,  4, 2,  1], [2,  5, 2,  2], [2,  8, 2,  2]],
+    '@' : [[1,  1, 5,  1], [0,  2, 2,  7], [5,  2, 2,  2], [3,  4, 4,  3], [1,  9, 5,  1]],
+    'A' : [[2,  1, 2,  1], [1,  2, 4,  1], [0,  3, 2,  7], [4,  3, 2,  7], [2,  6, 2,  1]],
+    'B' : [[0,  1, 6,  1], [1,  2, 2,  7], [5,  2, 2,  3], [3,  5, 3,  1], [5,  6, 2,  3], [0,  9, 6,  1]],
+    'C' : [[2,  1, 4,  1], [1,  2, 2,  1], [5,  2, 2,  2], [0,  3, 2,  5], [5,  7, 2,  2], [1,  8, 2,  1], [2,  9, 4,  1]],
+    'D' : [[0,  1, 5,  1], [1,  2, 2,  7], [4,  2, 2,  1], [5,  3, 2,  5], [4,  8, 2,  1], [0,  9, 5,  1]],
+    'E' : [[0,  1, 7,  1], [6,  2, 1,  1], [1,  2, 2,  7], [3,  5, 2,  1], [5,  4, 1,  3], [6,  8, 1,  1], [0,  9, 7,  1]],
+    'F' : [[0,  1, 7,  1], [5,  2, 2,  1], [6,  3, 1,  1], [1,  2, 2,  7], [3,  5, 2,  1], [5,  4, 1,  3], [0,  9, 4,  1]],
+    'G' : [[2,  1, 4,  1], [1,  2, 2,  1], [5,  2, 2,  2], [0,  3, 2,  5], [1,  8, 2,  1], [2,  9, 3,  1], [5,  6, 2,  4], [4,  6, 1,  1]],
+    'H' : [[0,  1, 2,  9], [2,  5, 2,  1], [4,  1, 2,  9]],
+    'I' : [[1,  1, 4,  1], [2,  2, 2,  7], [1,  9, 4,  1]],
+    'J' : [[0,  6, 2,  3], [1,  9, 4,  1], [4,  2, 2,  7], [3,  1, 4,  1]],
+    'K' : [[0,  1, 3,  1], [1,  2, 2,  7], [0,  9, 3,  1], [5,  1, 2,  2], [4,  3, 2,  2], [3,  5, 2,  1], [4,  6, 2,  2], [5,  8, 2,  2]],
+    'L' : [[0,  1, 4,  1], [1,  2, 2,  7], [0,  9, 7,  1], [5,  7, 2,  2], [6,  6, 1,  1]],
+    'M' : [[0,  1, 2,  9], [2,  2, 1,  3], [3,  3, 1,  3], [4,  2, 1,  3], [5,  1, 2,  9]],
+    'N' : [[0,  1, 2,  9], [2,  3, 1,  3], [3,  4, 1,  3], [4,  5, 1,  3], [5,  1, 2,  9]],
+    'O' : [[2,  1, 3,  1], [1,  2, 2,  1], [4,  2, 2,  1], [0,  3, 2,  5], [5,  3, 2,  5], [1,  8, 2,  1], [4,  8, 2,  1], [2,  9, 3,  1]],
+    'P' : [[0,  1, 6,  1], [1,  2, 2,  7], [5,  2, 2,  3], [3,  5, 3,  1], [0,  9, 4,  1]],
+    'Q' : [[2,  1, 3,  1], [1,  2, 2,  1], [4,  2, 2,  1], [0,  3, 2,  5], [5,  3, 2,  5], [1,  8, 5,  1], [3,  7, 1,  1], [4,  6, 1,  2], [4,  9, 2,  1], [3, 10, 4,  1]],
+    'R' : [[0,  1, 6,  1], [1,  2, 2,  7], [5,  2, 2,  3], [3,  5, 3,  1], [0,  9, 3,  1], [4,  6, 2,  1], [5,  7, 2,  3]],
+    'S' : [[1,  1, 4,  1], [0,  2, 2,  3], [4,  2, 2,  2], [1,  5, 3,  1], [3,  6, 2,  1], [0,  7, 2,  2], [4,  7, 2,  2], [1,  9, 4,  1]],
+    'T' : [[0,  1, 6,  1], [0,  2, 1,  1], [5,  2, 1,  1], [2,  2, 2,  7], [1,  9, 4,  1]],
+    'U' : [[0,  1, 2,  8], [4,  1, 2,  8], [1,  9, 4,  1]],
+    'V' : [[0,  1, 2,  7], [4,  1, 2,  7], [1,  8, 4,  1], [2,  9, 2,  1]],
+    'W' : [[0,  1, 2,  6], [5,  1, 2,  6], [3,  5, 1,  2], [1,  7, 2,  3], [4,  7, 2,  3]],
+    'X' : [[0,  1, 2,  3], [4,  1, 2,  3], [1,  4, 4,  1], [2,  5, 2,  1], [1,  6, 4,  1], [0,  7, 2,  3], [4,  7, 2,  3]],
+    'Y' : [[0,  1, 2,  4], [4,  1, 2,  4], [1,  5, 4,  1], [2,  6, 2,  3], [1,  9, 4,  1]],
+    'Z' : [[0,  3, 1,  1], [0,  2, 2,  1], [0,  1, 7,  1], [4,  2, 3,  1], [3,  3, 2,  2], [2,  5, 2,  1], [1,  6, 2,  2], [0,  8, 2,  1], [0,  9, 7,  1], [5,  8, 2,  1], [6,  7, 1,  1]],
+    '[' : [[2,  1, 4,  1], [2,  2, 2,  7], [2,  9, 4,  1]],
+    '\\': [[0,  2, 1,  2], [1,  3, 1,  2], [2,  4, 1,  2], [3,  5, 1,  2], [4,  6, 1,  2], [5,  7, 1,  2], [6,  8, 1,  2]],
+    ']' : [[2,  1, 4,  1], [4,  2, 2,  7], [2,  9, 4,  1]],
+    '^' : [[0,  3, 2,  1], [1,  2, 2,  1], [2,  1, 3,  1], [3,  0, 1,  1], [4,  2, 2,  1], [5,  3, 2,  1]],
+    '_' : [[0, 10, 8,  1]],
+    '`' : [[2,  0, 2,  2], [3,  2, 2,  1]],
+    'a' : [[1,  4, 4,  1], [4,  5, 2,  4], [1,  6, 3,  1], [0,  7, 2,  2], [1,  9, 3,  1], [5,  9, 2,  1]],
+    'b' : [[0,  1, 3,  1], [1,  2, 2,  7], [3,  4, 3,  1], [5,  5, 2,  4], [0,  9, 2,  1], [3,  9, 3,  1]],
+    'c' : [[1,  4, 4,  1], [0,  5, 2,  4], [4,  5, 2,  1], [4,  8, 2,  1], [1,  9, 4,  1]],
+    'd' : [[3,  1, 1,  1], [4,  1, 2,  8], [1,  4, 3,  1], [0,  5, 2,  4], [1,  9, 3,  1], [5,  9, 2,  1]],
+    'e' : [[1,  4, 4,  1], [0,  5, 2,  4], [4,  5, 2,  1], [2,  6, 4,  1], [4,  8, 2,  1], [1,  9, 4,  1]],
+    'f' : [[2,  1, 3,  1], [1,  2, 2,  7], [4,  2, 2,  1], [0,  5, 1,  1], [3,  5, 2,  1], [0,  9, 4,  1]],
+    'g' : [[1,  4, 3,  1], [5,  4, 2,  1], [0,  5, 2,  3], [4,  5, 2,  6], [1,  8, 3,  1], [0, 10, 2,  1], [1, 11, 4,  1]],
+    'h' : [[0,  1, 3,  1], [1,  2, 2,  7], [4,  4, 2,  1], [3,  5, 1,  1], [5,  5, 2,  5], [0,  9, 3,  1]],
+    'i' : [[3,  1, 2,  2], [1,  4, 4,  1], [3,  5, 2,  4], [1,  9, 6,  1]],
+    'j' : [[4,  1, 2,  2], [2,  4, 4,  1], [4,  5, 2,  6], [1, 11, 4,  1], [0,  9, 2,  2]],
+    'k' : [[0,  1, 3,  1], [1,  2, 2,  7], [5,  4, 2,  1], [4,  5, 2,  1], [3,  6, 2,  1], [4,  7, 2,  1], [5,  8, 2,  2], [0,  9, 3,  1]],
+    'l' : [[1,  1, 4,  1], [3,  2, 2,  7], [1,  9, 6,  1]],
+    'm' : [[0,  4, 6,  1], [0,  5, 2,  5], [3,  5, 1,  4], [5,  5, 2,  5]],
+    'n' : [[0,  4, 5,  1], [0,  5, 2,  5], [4,  5, 2,  5]],
+    'o' : [[1,  4, 4,  1], [0,  5, 2,  4], [4,  5, 2,  4], [1,  9, 4,  1]],
+    'p' : [[0,  4, 2,  1], [3,  4, 3,  1], [1,  5, 2,  6], [5,  5, 2,  4], [3,  9, 3,  1], [0, 11, 4,  1]],
+    'q' : [[1,  4, 3,  1], [5,  4, 2,  1], [0,  5, 2,  4], [4,  5, 2,  6], [1,  9, 3,  1], [3, 11, 4,  1]],
+    'r' : [[0,  4, 3,  1], [4,  4, 2,  2], [1,  5, 2,  4], [3,  6, 1,  1], [6,  5, 1,  2], [5,  6, 1,  1], [0,  9, 4,  1]],
+    's' : [[1,  4, 4,  1], [0,  5, 2,  1], [4,  5, 2,  1], [1,  6, 2,  1], [3,  7, 2,  1], [0,  8, 2,  1], [4,  8, 2,  1], [1,  9, 4,  1]],
+    't' : [[2,  2, 1,  1], [1,  3, 2,  6], [0,  4, 1,  1], [3,  4, 3,  1], [2,  9, 3,  1], [4,  8, 2,  1]],
+    'u' : [[0,  4, 2,  5], [4,  4, 2,  5], [1,  9, 3,  1], [5,  9, 2,  1]],
+    'v' : [[0,  4, 2,  4], [4,  4, 2,  4], [1,  8, 4,  1], [2,  9, 2,  1]],
+    'w' : [[0,  4, 2,  4], [5,  4, 2,  4], [3,  6, 1,  2], [1,  8, 2,  2], [4,  8, 2,  2]],
+    'x' : [[0,  4, 2,  1], [5,  4, 2,  1], [1,  5, 2,  1], [4,  5, 2,  1], [2,  6, 3,  2], [1,  8, 2,  1], [4,  8, 2,  1], [0,  9, 2,  1], [5,  9, 2,  1]],
+    'y' : [[1,  4, 2,  4], [5,  4, 2,  4], [2,  8, 4,  1], [4,  9, 2,  1], [3, 10, 2,  1], [0, 11, 4,  1]],
+    'z' : [[0,  4, 6,  1], [0,  5, 1,  1], [4,  5, 2,  1], [3,  6, 2,  1], [1,  7, 2,  1], [0,  8, 2,  1], [5,  8, 1,  1], [0,  9, 6,  1]],
+    '{' : [[3,  1, 3,  1], [2,  2, 2,  2], [1,  4, 2,  1], [0,  5, 2,  1], [1,  6, 2,  1], [2,  7, 2,  2], [3,  9, 3,  1]],
+    '|' : [[3,  1, 2,  4], [3,  6, 2,  4]],
+    '}' : [[0,  1, 3,  1], [2,  2, 2,  2], [3,  4, 2,  1], [4,  5, 2,  1], [3,  6, 2,  1], [2,  7, 2,  2], [0,  9, 3,  1]],
+    '~' : [[0,  2, 2,  2], [1,  1, 3,  1], [3,  2, 2,  1], [4,  3, 3,  1], [6,  2, 1,  1], [6,  1, 2,  1]],
+  };
+  
+  /**
+   * @module CanvasRenderingContext2D
+   * 
+   * @example var ctx = someCanvasElement.getContext('2d');
+   * @example ctx.hermesDraw('x', 100, 200); // Draws an 'x' with its top left corner at 100, 200
+   * @example ctx.hermesDraw('Hello world!', 100, 200); // Draws 'Hello world!' starting at 100, 200
+   * @example ctx.hermesDraw('Hello world!', 100, 200, 7); // Draws 'Hello w' starting at 100, 200
+   * @example ctx.hermesDraw('Hello world!', 100, 200, 0); // Draws nothing
+   * @example ctx.hermesDraw('Hello world!', 100, 200, null); // Draws 'Hello world!' starting at 100, 200
+   * @example ctx.hermesDraw('Hello world!', 100, 200, null, rgb('255, 128, 0')); // Draws 'Hello world!' starting at 100, 200 in orange
+   */
+  
+  // @method proto undefined hermesDraw(String text, Number x, Number y, Number maxWidth, String style) -- Draw a string in antique raster font
+  CanvasRenderingContext2D.prototype.hermesDraw = function hermesDraw(text, x, y, maxWidth, style) {
+    text = String(text) || ' ';
+    
+    // If null or undefined, maxWidth defaults to width of text (i.e. no effect)
+    if(maxWidth === undefined || maxWidth === null) {
+      maxWidth = text.length;
+    }
+    maxWidth = Number(maxWidth) || 0;
+    
+    if(text.length <= 0 || maxWidth <= 0) {
+      return;
+    }
+    
+    if(style) {
+      this.fillStyle = style;
+    }
+    
+    if(DRAW_CALLS[text[0]]) {
+      DRAW_CALLS[text[0]].forEach(function(v) {
+        this.fillRect(x + v[0], y + v[1], v[2], v[3]);
+      }, this);
+    }
+    
+    --maxWidth;
+    text = text.substring(1);
+    x += CHAR_WIDTH;
+    this.hermesDraw(text, x, y, maxWidth);
+  }
+  
+  // @method proto undefined hermesRedraw(String text, Number x, Number y, Number maxWidth, String style) -- Draw a string in antique raster font, clearing the area underneath (clear area determined by maxWidth)
+  CanvasRenderingContext2D.prototype.hermesRedraw = function hermesRedraw(text, x, y, maxWidth, style) {
+    this.clearRect(x, y, CHAR_WIDTH*maxWidth, CHAR_HEIGHT);
+    this.hermesDraw(text, x, y, maxWidth, style);
+  }
+  
+  return exports;
+})(); // Module pattern
+
+if(typeof module !== 'undefined' && module !== null && module.exports) {
+  module.exports = HERMES;
+}
+
+},{}],19:[function(require,module,exports){
+(function(root, factory) {
+  if(typeof define === 'function' && define.amd) {
+    // AMD. Register as an anonymous module.
+    define([], factory);
+  }
+  
+  if(typeof exports === 'object') {
+    // Node. Does not work with strict CommonJS, but
+    // only CommonJS-like environments that support module.exports,
+    // like Node.
+    module.exports = factory();
+  }
+  
+  // Browser globals (root is window)
+  root.PersistentWS = factory();
+}(this, function() {
+  /**
+   * @description This script provides a persistent WebSocket that attempts to reconnect after disconnections
+   */
+  
+  /**
+   * @module PersistentWS
+   * @description This is a WebSocket that attempts to reconnect after disconnections
+   * @description Reconnection times start at ~5s, double after each failed attempt, and are randomized +/- 10%
+   * @description Exposes standard WebSocket API (https://developer.mozilla.org/en-US/docs/Web/API/WebSocket)
+   * 
+   * @example var persistentConnection = new PersistentWS('wss://foo.bar/');
+   * @example
+   * @example persistentConnection.addEventListener('message', function(e) {
+   * @example   console.log('Received: ' + e.data);
+   * @example });
+   * @example
+   * @example // Options may be supplied as a *third* parameter, after the rarely-used protocols argument
+   * @example var anotherConnection = new PersistentWS('wss://foo.bar/', undefined, {verbose: true});
+   */
+  var PersistentWS = function PersistentWS(url, protocols, options) {
+    var self = this;
+    
+    // @prop Boolean verbose -- console.log() info about connections and disconnections
+    // @option Boolean verbose -- Sets .verbose
+    this.verbose = Boolean(options && options.verbose) || false;
+    
+    // @prop Number initialRetryTime -- Delay for first retry attempt, in milliseconds. Always an integer >= 100
+    // @option Number initialRetryTime -- Sets .initialRetryTime
+    this.initialRetryTime = Number(options && options.initialRetryTime) || 5000;
+    
+    // @prop Boolean persistence -- If false, disables reconnection
+    // @option Boolean persistence -- Sets .persistence
+    this.persistence = options === undefined || options.persistence === undefined || Boolean(options.persistence);
+    
+    // @prop Number attempts -- Retry attempt # since last disconnect
+    this.attempts = 0;
+    
+    // @prop WebSocket socket -- The actual WebSocket. Events registered directly to the raw socket will be lost after reconnections
+    this.socket = {};
+    
+    // @method undefined _onopen(Event e) -- For internal use. Calls to .onopen() and handles reconnection cleanup
+    this._onopen = function(e) {
+      if(self.onopen) {
+        self.onopen(e);
+      }
+    }
+    
+    // @method undefined _onmessage(Event e) -- For internal use. Calls to .onmessage()
+    this._onmessage = function(e) {
+      if(self.onmessage) {
+        self.onmessage(e);
+      }
+    }
+    
+    // @method undefined _onerror(Error e) -- For internal use. Calls to .onerror()
+    this._onerror = function(e) {
+      if(self.onerror) {
+        self.onerror(e);
+      }
+    }
+    
+    // @method undefined _onclose(Event e) -- For internal use. Calls to .onclose() and ._reconnect() where appropriate
+    this._onclose = function(e) {
+      if(self.persistence) {
+        self._reconnect();
+      }
+      
+      if(self.onclose) {
+        self.onclose(e);
+      }
+    }
+    
+    // @prop [[String, Function, Boolean]] _listeners -- For internal use. Array of .addEventListener arguments
+    this._listeners = [
+      ['open', this._onopen],
+      ['message', this._onmessage],
+      ['error', this._onerror],
+      ['close', this._onclose]
+    ];
+    
+    // @method undefined _connect() -- For internal use. Connects and copies in event listeners
+    this._connect = function _connect() {
+      if(self.verbose) {
+        console.log('Opening WebSocket to ' + url);
+      }
+      
+      var binaryType = self.socket.binaryType;
+      
+      self.socket = new WebSocket(url, protocols);
+      
+      self.socket.binaryType = binaryType || self.socket.binaryType;
+      
+      // Reset .attempts counter on successful connection
+      self.socket.addEventListener('open', function() {
+        if(self.verbose) {
+          console.log('WebSocket connected to ' + self.url);
+        }
+        
+        self.attempts = 0;
+      });
+      
+      self._listeners.forEach(function(v) {
+        self.socket.addEventListener.apply(self.socket, v);
+      });
+    }
+    
+    this._connect();
+  }
+  
+  PersistentWS.CONNECTING = WebSocket.CONNECTING;
+  PersistentWS.OPEN       = WebSocket.OPEN;
+  PersistentWS.CLOSING    = WebSocket.CLOSING;
+  PersistentWS.CLOSED     = WebSocket.CLOSED;
+  
+  PersistentWS.prototype.CONNECTING = WebSocket.CONNECTING;
+  PersistentWS.prototype.OPEN       = WebSocket.OPEN;
+  PersistentWS.prototype.CLOSING    = WebSocket.CLOSING;
+  PersistentWS.prototype.CLOSED     = WebSocket.CLOSED;
+  
+  var webSocketProperties = ['binaryType', 'bufferedAmount', 'extensions', 'protocol', 'readyState', 'url'];
+  
+  webSocketProperties.forEach(function(v) {
+    Object.defineProperty(PersistentWS.prototype, v, {
+      get: function() {
+        return this.socket[v];
+      },
+      set: function(x) {
+        return (this.socket[v] = x);
+      }
+    });
+  });
+  
+  PersistentWS.prototype.close = function(code, reason) {
+    this.socket.close(code, reason);
+  }
+  
+  PersistentWS.prototype.send = function(data) {
+    this.socket.send(data);
+  }
+  
+  PersistentWS.prototype.addEventListener = function addEventListener(type, listener, useCapture) {
+    this.socket.addEventListener(type, listener, useCapture);
+    
+    var alreadyStored = this._getListenerIndex(type, listener, useCapture) !== -1;
+    
+    if(!alreadyStored) {
+      // Store optional parameter useCapture as Boolean, for consistency with
+      // https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/removeEventListener
+      var useCaptureBoolean = Boolean(useCapture);
+      
+      this._listeners.push([type, listener, useCaptureBoolean]);
+    }
+  }
+  
+  PersistentWS.prototype.removeEventListener = function removeEventListener(type, listener, useCapture) {
+    this.socket.removeEventListener(type, listener, useCapture);
+    
+    var indexToRemove = this._getListenerIndex(type, listener, useCapture);
+    
+    if(indexToRemove !== -1) {
+      this._listeners.splice(indexToRemove, 1);
+    }
+  }
+  
+  // @method proto Boolean dispatchEvent(Event event) -- Same as calling .dispatchEvent() on .socket
+  PersistentWS.prototype.dispatchEvent = function(event) {
+    return this.socket.dispatchEvent(event);
+  }
+  
+  // @method proto Number _getListenerIndex(String type, Function listener[, Boolean useCapture]) -- For internal use. Returns index of a listener in ._listeners
+  PersistentWS.prototype._getListenerIndex = function _getListenerIndex(type, listener, useCapture) {
+    // Store optional parameter useCapture as Boolean, for consistency with
+    // https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/removeEventListener
+    var useCaptureBoolean = Boolean(useCapture);
+    
+    var result = -1;
+    
+    this._listeners.forEach(function(v, i) {
+      if(v[0] === type && v[1] === listener && v[2] === useCaptureBoolean) {
+        result = i;
+      }
+    });
+    
+    return result;
+  }
+  
+  // @method proto undefined _reconnect() -- For internal use. Begins the reconnection timer
+  PersistentWS.prototype._reconnect = function() {
+    // Retty time falls of exponentially
+    var retryTime = this.initialRetryTime*Math.pow(2, this.attempts++);
+    
+    // Retry time is randomized +/- 10% to prevent clients reconnecting at the exact same time after a server event
+    retryTime += Math.floor(Math.random()*retryTime/5 - retryTime/10);
+    
+    if(this.verbose) {
+      console.log('WebSocket disconnected, attempting to reconnect in ' + retryTime + 'ms...');
+    }
+    
+    setTimeout(this._connect, retryTime);
+  }
+  
+  // Only one object to return, so no need for module object to hold it
+  return PersistentWS;
+})); // Module pattern
+
+},{}],20:[function(require,module,exports){
+(function (Buffer){
+var _ = {};
+
+if (Buffer([255]).readUInt32BE(0, true) !== 0xff000000) {
+    throw Error("Runtime incompatibility! Bitfield logic assumes 0-padded reads off end of buffer.");
+}
+
+function extend(obj) {
+    Array.prototype.slice.call(arguments, 1).forEach(function (ext) {
+        Object.keys(ext).forEach(function (key) {
+            obj[key] = ext[key];
+        });
+    });
+    return obj;
+}
+
+function addField(ctr, f) {
+    if ('width' in f) {
+        ctr.bits = (ctr.bits || 0) + f.width;
+        while (ctr.bits > 7) {
+            ctr.bytes += 1;
+            ctr.bits -= 8;
+        }
+    } else if (!ctr.bits) {
+        ctr.bytes += f.size;
+    } else {
+        throw Error("Improperly aligned bitfield before field: "+f.name);
+    }
+    return ctr;
+}
+
+function arrayizeField(f, count) {
+    var f2 = (typeof count === 'number') ? extend({
+        name: f.name,
+        field: f,
+        valueFromBytes: function (buf, off) {
+            off || (off = {bytes:0, bits:0});
+            var arr = new Array(count);
+            for (var idx = 0, len = arr.length; idx < len; idx += 1) {
+                arr[idx] = f.valueFromBytes(buf, off);
+            }
+            return arr;
+        },
+        bytesFromValue: function (arr, buf, off) {
+            arr || (arr = new Array(count));
+            buf || (buf = new Buffer(this.size));
+            off || (off = {bytes:0, bits:0});
+            for (var idx = 0, len = arr.length; idx < len; idx += 1) {
+                f.bytesFromValue(arr[idx], buf, off);
+            }
+            while (idx++ < count) addField(off, f);
+            return buf;
+        }
+    }, ('width' in f) ? {width: f.width * count} : {size: f.size * count}) : f;
+    f2.pack = f2.bytesFromValue;
+    f2.unpack = f2.valueFromBytes;
+    return f2;
+}
+
+_.struct = function (name, fields, count) {
+    if (typeof name !== 'string') {
+        count = fields;
+        fields = name;
+        name = null;
+    }
+    
+    var _size = {bytes:0, bits:0},
+        _padsById = Object.create(null),
+        fieldsObj = fields.reduce(function (obj, f, i) {
+            if ('_padTo' in f) {
+                // HACK: we really should just make local copy of *all* fields
+                f._id || (f._id = 'id'+Math.random().toFixed(20).slice(2));      // WORKAROUND: https://github.com/tessel/runtime/issues/716
+                var _f = _padsById[f._id] = (_size.bits) ? {
+                    width: 8*(f._padTo - _size.bytes) - _size.bits
+                } : {
+                    size: f._padTo - _size.bytes
+                };
+                if (_f.width < 0 || _f.size < 0) {
+                    var xtraMsg = (_size.bits) ? (" and "+_size.bits+" bits") : '';
+                    throw Error("Invalid .padTo("+f._padTo+") field, struct is already "+_size.bytes+" byte(s)"+xtraMsg+"!");
+                }
+                f = _f;
+            }
+            else if (f._hoistFields) Object.keys(f._hoistFields).forEach(function (name) {
+                var _f = Object.create(f._hoistFields[name]);
+                if ('width' in _f) _f.offset = {bytes:_f.offset.bytes+_size.bytes, bits:_f.offset.bits};
+                else _f.offset += _size.bytes;
+                obj[name] = _f;
+            });
+            else if (f.name) {
+                f = Object.create(f);           // local overrides
+                f.offset = ('width' in f) ? {bytes:_size.bytes,bits:_size.bits} : _size.bytes,
+                obj[f.name] = f;
+            }
+            addField(_size, f);
+            return obj;
+        }, {});
+    if (_size.bits) throw Error("Improperly aligned bitfield at end of struct: "+name);
+    
+    return arrayizeField({
+        valueFromBytes: function (buf, off) {
+            off || (off = {bytes:0, bits:0});
+            var obj = new Object();
+            fields.forEach(function (f) {
+                if ('_padTo' in f) return addField(off, _padsById[f._id]);
+                
+                var value = f.valueFromBytes(buf, off);
+                if (f.name) obj[f.name] = value;
+                else if (typeof value === 'object') extend(obj, value);
+            });
+            return obj;
+        },
+        bytesFromValue: function (obj, buf, off) {
+            obj || (obj = {});
+            buf || (buf = new Buffer(this.size));
+            off || (off = {bytes:0, bits:0});
+            fields.forEach(function (f) {
+                if ('_padTo' in f) return addField(off, _padsById[f._id]);
+                
+                var value = (f.name) ? obj[f.name] : obj;
+                f.bytesFromValue(value, buf, off);
+            });
+            return buf;
+        },
+        _hoistFields: (!name) ? fieldsObj : null,
+        fields: fieldsObj,
+        size: _size.bytes,
+        name: name
+    }, count);
+};
+
+_.padTo = function (off) {
+    return {_padTo:off};
+};
+
+
+// NOTE: bitfields must be embedded in a struct (C/C++ share this limitation)
+
+var FULL = 0xFFFFFFFF;
+function bitfield(name, width, count) {
+    width || (width = 1);
+    // NOTE: width limitation is so all values will align *within* a 4-byte word
+    if (width > 24) throw Error("Bitfields support a maximum width of 24 bits.");
+    var impl = this,
+        mask = FULL >>> (32 - width);
+    return arrayizeField({
+        valueFromBytes: function (buf, off) {
+            off || (off = {bytes:0, bits:0});
+            var end = (off.bits || 0) + width,
+                word = buf.readUInt32BE(off.bytes, true) || 0,
+                over = word >>> (32 - end);
+            addField(off, this);
+            return impl.b2v.call(this, over & mask);
+        },
+        bytesFromValue: function (val, buf, off) {
+            val = impl.v2b.call(this, val || 0);
+            off || (off = {bytes:0, bits:0});
+            var end = (off.bits || 0) + width,
+                word = buf.readUInt32BE(off.bytes, true) || 0,
+                zero = mask << (32 - end),
+                over = (val & mask) << (32 - end);
+            word &= ~zero;
+            word |= over;
+            word >>>= 0;      // WORKAROUND: https://github.com/tessel/runtime/issues/644
+            buf.writeUInt32BE(word, off.bytes, true);
+            addField(off, this);
+            return buf;
+        },
+        width: width,
+        name: name
+    }, count);
+}
+
+function swapBits(n, w) {
+    var o = 0;
+    while (w--) {
+        o <<= 1;
+        o |= n & 1;
+        n >>>= 1;
+    }
+    return o;
+}
+
+
+_.bool = function (name, count) {
+    return bitfield.call({
+        b2v: function (b) { return Boolean(b); },
+        v2b: function (v) { return (v) ? FULL : 0; }
+    }, name, 1, count);
+
+};
+_.ubit = bitfield.bind({
+    b2v: function (b) { return b; },
+    v2b: function (v) { return v; }
+});
+_.ubitLE = bitfield.bind({
+    b2v: function (b) { return swapBits(b, this.width); },
+    v2b: function (v) { return swapBits(v, this.width); }
+});
+_.sbit = bitfield.bind({        // TODO: handle sign bit…
+    b2v: function (b) {
+        var m = 1 << (this.width-1),
+            s = b & m;
+        return (s) ? -(b &= ~m) : b;
+    },
+    v2b: function (v) {
+        var m = 1 << (this.width-1),
+            s = (v < 0);
+        return (s) ? (-v | m) : v;
+    }
+});
+
+
+function bytefield(name, size, count) {
+    if (typeof name !== 'string') {
+        count = size;
+        size = name;
+        name = null;
+    }
+    size = (typeof size === 'number') ? size : 1;
+    var impl = this;
+    return arrayizeField({
+        valueFromBytes: function (buf, off) {
+            off || (off = {bytes:0, bits:0});
+            var val = buf.slice(off.bytes, off.bytes+this.size);
+            addField(off, this);
+            return impl.b2v.call(this, val);
+        },
+        bytesFromValue: function (val, buf, off) {
+            off || (off = {bytes:0});
+            buf || (buf = new Buffer(this.size));
+            var blk = buf.slice(off.bytes, off.bytes+this.size),
+                len = impl.vTb.call(this, val, blk);
+            if (len < blk.length) blk.fill(0, len);
+            addField(off, this);
+            return buf;
+        },
+        size: size,
+        name: name
+    }, count);
+}
+
+
+_.byte = bytefield.bind({
+    b2v: function (b) { return b; },
+    vTb: function (v,b) { if (!v) return 0; v.copy(b); return v.length; }
+});
+
+_.char = bytefield.bind({
+    b2v: function (b) {
+        var v = b.toString('utf8'),
+            z = v.indexOf('\0');
+        return (~z) ? v.slice(0, z) : v;
+    },
+    vTb: function (v,b) {
+        v || (v = '');
+        return b.write(v, 'utf8');
+    }
+});
+
+_.char16le = bytefield.bind({
+    b2v: function (b) {
+        var v = b.toString('utf16le'),
+            z = v.indexOf('\0');
+        return (~z) ? v.slice(0, z) : v;
+    },
+    vTb: function (v,b) {
+        v || (v = '');
+        return b.write(v, 'utf16le');
+    }
+});
+
+
+function standardField(sig, size) {
+    var read = 'read'+sig,
+        dump = 'write'+sig;
+    size || (size = +sig.match(/\d+/)[0] >> 3);
+    return function (name, count) {
+        if (typeof name !== 'string') {
+            count = name;
+            name = null;
+        }
+        return arrayizeField({
+            valueFromBytes: function (buf, off) {
+                off || (off = {bytes:0});
+                var val = buf[read](off.bytes);
+                addField(off, this);
+                return val;
+            },
+            bytesFromValue: function (val, buf, off) {
+                val || (val = 0);
+                buf || (buf = new Buffer(this.size));
+                off || (off = {bytes:0});
+                buf[dump](val, off.bytes);
+                addField(off, this);
+                return buf;
+            },
+            size: size,
+            name: name
+        }, count);
+    };
+}
+
+_.float32 = standardField('FloatBE',4);
+_.float64 = standardField('DoubleBE',8);
+_.float32le = standardField('FloatLE',4);
+_.float64le = standardField('DoubleLE',8);
+
+_.uint8 = standardField('UInt8');
+_.uint16 = standardField('UInt16BE');
+_.uint32 = standardField('UInt32BE');
+_.uint16le = standardField('UInt16LE');
+_.uint32le = standardField('UInt32LE');
+
+_.int8 = standardField('Int8');
+_.int16 = standardField('Int16BE');
+_.int32 = standardField('Int32BE');
+_.int16le = standardField('Int16LE');
+_.int32le = standardField('Int32LE');
+
+module.exports = _;
+
+}).call(this,require("buffer").Buffer)
+},{"buffer":14}]},{},[3]);
