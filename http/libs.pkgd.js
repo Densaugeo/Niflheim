@@ -1,11 +1,236 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+var struct_fu = require('struct-fu');
+var buffer = require('buffer');
+
+var VERSION = exports.VERSION = 0x00;
+var PROTOCOL = exports.PROTOCOL =  0x1000000*VERSION + 0x17BAC0;
+
+var TYPES = exports.TYPES = {
+  region_properties: 1,
+  cell_cache: 2,
+  agent_cache: 3,
+  cell_update: 4,
+  agent_update: 5,
+  agent_action: 6,
+  
+  1: 'region_properties',
+  2: 'cell_cache',
+  3: 'agent_cache',
+  4: 'cell_update',
+  5: 'agent_update',
+  6: 'agent_action',
+}
+
+var agentDefinition = exports.agentDefinition = struct_fu.struct([
+  struct_fu.uint32le('speciesID'),
+  struct_fu.uint32le('agentID')
+]);
+
+var cellDefinition = exports.cellDefinition = struct_fu.struct([
+  struct_fu.uint16le('x'),
+  struct_fu.uint16le('y'),
+  struct_fu.uint32le('terrainID'),
+  struct_fu.uint8('hasAgent'),
+  struct_fu.uint32le('agentID')
+]);
+
+var headerDefinition = exports.headerDefinition = struct_fu.struct([
+  struct_fu.uint32le('protocol'),
+  struct_fu.uint8('type'),
+  struct_fu.uint32le('regionID')
+]);
+
+var packetDefinitions = exports.packetDefinitions = {};
+
+packetDefinitions.region_properties = {
+  base: struct_fu.struct([
+    struct_fu.uint16le('width'),
+    struct_fu.uint16le('height'),
+    struct_fu.uint16le('subregionsX'),
+    struct_fu.uint16le('subregionsY')
+  ])
+}
+
+packetDefinitions.cell_cache = {
+  base: struct_fu.struct([
+    struct_fu.int16le('sx'),
+    struct_fu.int16le('sy'),
+    struct_fu.uint16le('width'),
+    struct_fu.uint16le('height')
+  ]),
+  array: cellDefinition
+}
+
+packetDefinitions.agent_cache = {
+  base: struct_fu.struct([
+    struct_fu.int16le('sx'),
+    struct_fu.int16le('sy'),
+    struct_fu.uint32le('agentCount'),
+  ]),
+  array: agentDefinition
+}
+
+packetDefinitions.cell_update = {
+  base: struct_fu.struct([
+    struct_fu.int16le('sx'),
+    struct_fu.int16le('sy'),
+    struct_fu.uint32le('cellCount')
+  ]),
+  array: cellDefinition
+}
+
+packetDefinitions.agent_update = packetDefinitions.agent_cache;
+
+packetDefinitions.agent_action = {
+  base: struct_fu.struct([
+    struct_fu.uint32le('agentID'),
+    struct_fu.uint8('action'),
+    struct_fu.uint8('direction')
+  ])
+}
+
+var Packet = exports.Packet = function Packet() {}
+
+var fromBuffer = exports.fromBuffer = function fromBuffer(buffer) {
+  var packet = headerDefinition.unpack(buffer);
+  
+  if(packet.protocol !== PROTOCOL) {
+    throw new Error('Expected protocol ' + PROTOCOL.toString(16) + ' but found ' + protocol.toString(16));
+  }
+  
+  if(TYPES[packet.type]) {
+    var type = packetDefinitions[TYPES[packet.type]];
+    
+    var base = type.base.unpack(buffer, {bytes: headerDefinition.size, bits: 0});
+    
+    for(var i in base) {
+      packet[i] = base[i];
+    }
+    
+    if(type.array) {
+      packet.array = [];
+      
+      for(var offset = headerDefinition.size + type.base.size; offset < buffer.length; offset += type.array.size) {
+        packet.array.push(type.array.unpack(buffer, {bytes: offset, bits: 0}));
+      }
+    }
+  } else {
+    throw new Error('Packet type not recognized (type id ' + buffer.readUInt8(4) + ')');
+  }
+  
+  return packet;
+}
+
+// TODO pack arrays
+var toBuffer = exports.toBuffer = function toBuffer(packet) {
+  packet.protocol = PROTOCOL;
+  
+  var header = headerDefinition.pack(packet);
+  var base = packetDefinitions.agent_action.base.pack(packet);
+  
+  return buffer.Buffer.concat([header, base]);
+}
+
+var amendCellCache = exports.amendCellCache = function amendCellCache(cellCache, cellUpdate) {
+  var ccDef = packetDefinitions.cell_cache;
+  var cuDef = packetDefinitions.cell_update;
+  
+  var cacheHeader = headerDefinition.unpack(cellCache);
+  var cacheBase = ccDef.base.unpack(cellCache, {bytes: headerDefinition.size, bits: 0});
+  
+  var updateHeader = headerDefinition.unpack(cellUpdate);
+  var updateBase = cuDef.base.unpack(cellUpdate, {bytes: headerDefinition.size, bits: 0});
+  
+  if(cacheHeader.protocol !== PROTOCOL) {
+    throw new Error('Expected protocol ' + PROTOCOL.toString(16) + ' but found ' + cacheHeader.protocol.toString(16));
+  }
+  
+  if(updateHeader.protocol !== PROTOCOL) {
+    throw new Error('Expected protocol ' + PROTOCOL.toString(16) + ' but found ' + updateHeader.protocol.toString(16));
+  }
+  
+  if(cacheHeader.type !== TYPES.cell_cache) {
+    throw new Error('Expected cell_cache packet (type ' + TYPES.cell_cache + ') but found type ' + cacheHeader.type);
+  }
+  
+  if(updateHeader.type !== TYPES.cell_update) {
+    throw new Error('Expected cell_update packet (type ' + TYPES.cell_update + ') but found type ' + updateHeader.type);
+  }
+  
+  if(cacheHeader.regionID !== updateHeader.regionID) {
+    throw new Error('cell_cache is for region ' + cacheHeader.regionID + ' but cell_update is for region ' + updateHeader.regionID);
+  }
+  
+  if(cacheBase.sx !== updateBase.sx) {
+    throw new Error('cell_cache is for sx ' + cacheBase.sx + ' but cell_update is for sx ' + updateBase.sy);
+  }
+  
+  if(cacheBase.sy !== updateBase.sy) {
+    throw new Error('cell_cache is for sy ' + cacheBase.sx + ' but cell_update is for sy ' + updateBase.sy);
+  }
+  
+  var cellCacheHeight = cacheBase.height;
+  
+  for(var offset = headerDefinition.size + cuDef.base.size; offset < cellUpdate.length; offset += cuDef.array.size) {
+    var cell = cuDef.array.unpack(cellUpdate, {bytes: offset, bits: 0});
+    
+    var x = cell.x;
+    var y = cell.y;
+    
+    cellUpdate.copy(cellCache, headerDefinition.size + ccDef.base.size + ccDef.array.size*(y + x*cellCacheHeight), offset, offset + cuDef.array.size);
+  }
+}
+
+},{"buffer":17,"struct-fu":16}],2:[function(require,module,exports){
+var ParticleType = exports.ParticleType = function ParticleType(options) {
+  // @prop Number typeID -- 32-bit type identifier
+  this.typeID = (options.typeID & 0xFFFFFFFF) >>> 0;
+  
+  // @prop String name -- Common name
+  this.name = String(options.name);
+  
+  // @prop String char -- Char for roguelike display
+  this.char = String(options.char || ' ')[0];
+  
+  // @prop Number color -- 32-bit color, R-G-B-A from most to least significant
+  this.color = options.color;
+  
+  // @prop Boolean pauli -- No more than one Pauli particle per Cell
+  this.pauli = Boolean(options.pauli);
+}
+
+var Terrain = exports.Terrain = function Terrain(options) {
+  ParticleType.call(this, options);
+}
+Terrain.prototype = Object.create(ParticleType.prototype);
+Terrain.prototype.constructor = Terrain;
+
+var Species = exports.Species = function Species(options) {
+  ParticleType.call(this, options);
+}
+Species.prototype = Object.create(ParticleType.prototype);
+Species.prototype.constructor = Species;
+
+var terrainLibrary = exports.terrainLibrary = [
+  new Terrain({name: 'grass', char: '.', color: 'rgb(  0, 255,   0)', pauli: false, typeID: 0}),
+  new Terrain({name: 'water', char: '~', color: 'rgb(  0,   0, 255)', pauli: true , typeID: 1}),
+  new Terrain({name: 'tree' , char: 'T', color: 'rgb(  0, 128,   0)', pauli: false, typeID: 2}),
+];
+
+var speciesLibrary = exports.speciesLibrary = [
+  new Species({name: 'Gremlin'     , char: 'g', color: 'rgb(  0,   0, 255)', pauli: true , typeID: 0}),
+  new Species({name: 'Basic Avatar', char: '@', color: 'rgb(255,   0,   0)', pauli: true , typeID: 1}),
+];
+
+},{}],3:[function(require,module,exports){
 window.PersistentWS = require('persistent-ws');
 window.buffer = require('buffer');
 window.hermes = require('hermes');
 window.Hematite = require('hematite');
-window.struct_fu = require('struct-fu');
+window.Particles = require('./Particles.js');
+window.Packets = require('./Packets.js');
 
-},{"buffer":15,"hematite":2,"hermes":12,"persistent-ws":13,"struct-fu":14}],2:[function(require,module,exports){
+},{"./Packets.js":1,"./Particles.js":2,"buffer":17,"hematite":4,"hermes":14,"persistent-ws":15}],4:[function(require,module,exports){
 /**
  * @depends AsyNTer
  * @depends Draggabilliy
@@ -200,7 +425,7 @@ Hematite.Panel.prototype.toggleOpen = function(focus) {
   }
 }
 
-},{"asynter":3,"draggabilly":4}],3:[function(require,module,exports){
+},{"asynter":5,"draggabilly":6}],5:[function(require,module,exports){
 (function(root, factory) {
   if(typeof define === 'function' && define.amd) {
     // AMD. Register as an anonymous module.
@@ -311,7 +536,7 @@ Hematite.Panel.prototype.toggleOpen = function(focus) {
   return AsyNTer;
 })); // Module pattern
 
-},{}],4:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 /*!
  * Draggabilly v1.2.4
  * Make that shiz draggable
@@ -827,7 +1052,7 @@ return Draggabilly;
 
 }));
 
-},{"desandro-classie":5,"desandro-get-style-property":6,"get-size":7,"unidragger":11}],5:[function(require,module,exports){
+},{"desandro-classie":7,"desandro-get-style-property":8,"get-size":9,"unidragger":13}],7:[function(require,module,exports){
 /*!
  * classie v1.0.1
  * class helper functions
@@ -914,7 +1139,7 @@ if ( typeof define === 'function' && define.amd ) {
 
 })( window );
 
-},{}],6:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 /*!
  * getStyleProperty v1.0.4
  * original by kangax
@@ -971,7 +1196,7 @@ if ( typeof define === 'function' && define.amd ) {
 
 })( window );
 
-},{}],7:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 /*!
  * getSize v1.2.2
  * measure size of elements
@@ -1223,7 +1448,7 @@ if ( typeof define === 'function' && define.amd ) {
 
 })( window );
 
-},{"desandro-get-style-property":6}],8:[function(require,module,exports){
+},{"desandro-get-style-property":8}],10:[function(require,module,exports){
 /*!
  * eventie v1.0.6
  * event binding helper
@@ -1307,7 +1532,7 @@ if ( typeof define === 'function' && define.amd ) {
 
 })( window );
 
-},{}],9:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 /*!
  * EventEmitter v4.2.11 - git.io/ee
  * Unlicense - http://unlicense.org/
@@ -1781,7 +2006,7 @@ if ( typeof define === 'function' && define.amd ) {
     }
 }.call(this));
 
-},{}],10:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 /*!
  * Unipointer v1.1.0
  * base class for doing one thing with pointer event
@@ -2099,7 +2324,7 @@ return Unipointer;
 
 }));
 
-},{"eventie":8,"wolfy87-eventemitter":9}],11:[function(require,module,exports){
+},{"eventie":10,"wolfy87-eventemitter":11}],13:[function(require,module,exports){
 /*!
  * Unidragger v1.1.3
  * Draggable base class
@@ -2409,7 +2634,7 @@ return Unidragger;
 
 }));
 
-},{"eventie":8,"unipointer":10}],12:[function(require,module,exports){
+},{"eventie":10,"unipointer":12}],14:[function(require,module,exports){
 /**
  * @description This is essentilly a hackish raster font for html canvases
  * @description Characters are 8 pixels wide; lines are 12 pixels high
@@ -2582,7 +2807,7 @@ if(typeof module !== 'undefined' && module !== null && module.exports) {
   module.exports = HERMES;
 }
 
-},{}],13:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 (function(root, factory) {
   if(typeof define === 'function' && define.amd) {
     // AMD. Register as an anonymous module.
@@ -2804,7 +3029,7 @@ if(typeof module !== 'undefined' && module !== null && module.exports) {
   return PersistentWS;
 })); // Module pattern
 
-},{}],14:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function (Buffer){
 var _ = {};
 
@@ -3128,7 +3353,7 @@ _.int32le = standardField('Int32LE');
 module.exports = _;
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":15}],15:[function(require,module,exports){
+},{"buffer":17}],17:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -4567,7 +4792,7 @@ function decodeUtf8Char (str) {
   }
 }
 
-},{"base64-js":16,"ieee754":17,"is-array":18}],16:[function(require,module,exports){
+},{"base64-js":18,"ieee754":19,"is-array":20}],18:[function(require,module,exports){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 ;(function (exports) {
@@ -4693,7 +4918,7 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 	exports.fromByteArray = uint8ToBase64
 }(typeof exports === 'undefined' ? (this.base64js = {}) : exports))
 
-},{}],17:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -4779,7 +5004,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],18:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 
 /**
  * isArray
@@ -4814,4 +5039,4 @@ module.exports = isArray || function (val) {
   return !! val && '[object Array]' == str.call(val);
 };
 
-},{}]},{},[1]);
+},{}]},{},[3]);
