@@ -23,12 +23,6 @@ openssl req -new -sha256 -key test.key -out test.csr
 openssl x509 -req -sha256 -days 365 -in test.csr -out test.crt -signkey test.key
 ~~~
 
-ZeroMQ version 3 (not 2) is required before install npm or Rust dependencies
-
-~~~
-sudo yum install zeromq3-devel
-~~~
-
 Compile Rust parts:
 
 ~~~
