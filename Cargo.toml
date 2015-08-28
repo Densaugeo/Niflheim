@@ -9,6 +9,3 @@ authors = [ "Densaugeo <foo@bar.com>" ]
 rand = "0.3.*"
 byteorder = "0.3.*"
 
-[dependencies.zmq]
-
-git = "https://github.com/erickt/rust-zmq.git"

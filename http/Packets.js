@@ -22,6 +22,15 @@ var TYPES = exports.TYPES = {
   6: 'agent_action',
 }
 
+var SIZES = exports.SIZES = {
+  1: 17,
+  2: 3345,
+  3: 33,
+  4: 43,
+  5: 33,
+  6: 15,
+}
+
 var agentDefinition = exports.agentDefinition = struct_fu.struct([
   struct_fu.uint32le('speciesID'),
   struct_fu.uint32le('agentID')
@@ -90,11 +99,21 @@ packetDefinitions.agent_action = {
   ])
 }
 
+var getHeader = exports.getHeader = function getHeader(buffer) {
+  var packet = headerDefinition.unpack(buffer);
+  
+  if(packet.protocol !== PROTOCOL) {
+    throw new Error('Expected protocol ' + PROTOCOL.toString(16) + ' but found ' + packet.protocol.toString(16));
+  }
+  
+  return packet;
+}
+
 var fromBuffer = exports.fromBuffer = function fromBuffer(buffer) {
   var packet = headerDefinition.unpack(buffer);
   
   if(packet.protocol !== PROTOCOL) {
-    throw new Error('Expected protocol ' + PROTOCOL.toString(16) + ' but found ' + PROTOCOL.toString(16));
+    throw new Error('Expected protocol ' + PROTOCOL.toString(16) + ' but found ' + packet.protocol.toString(16));
   }
   
   if(TYPES[packet.type]) {
@@ -109,7 +128,7 @@ var fromBuffer = exports.fromBuffer = function fromBuffer(buffer) {
     if(type.array) {
       packet.array = [];
       
-      for(var offset = headerDefinition.size + type.base.size; offset < buffer.length; offset += type.array.size) {
+      for(var offset = headerDefinition.size + type.base.size; offset <= buffer.length - type.array.size; offset += type.array.size) {
         packet.array.push(type.array.unpack(buffer, {bytes: offset, bits: 0}));
       }
     }
@@ -170,7 +189,7 @@ var amendCellCache = exports.amendCellCache = function amendCellCache(cellCache,
   
   var cellCacheHeight = cacheBase.height;
   
-  for(var offset = headerDefinition.size + cuDef.base.size; offset < cellUpdate.length; offset += cuDef.array.size) {
+  for(var offset = headerDefinition.size + cuDef.base.size; offset <= cellUpdate.length - cuDef.array.size; offset += cuDef.array.size) {
     var cell = cuDef.array.unpack(cellUpdate, {bytes: offset, bits: 0});
     
     var x = cell.x;

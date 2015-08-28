@@ -1,13 +1,15 @@
 extern crate rand;
-extern crate zmq;
 extern crate byteorder;
 
 use std::thread::sleep_ms;
 use rand::Rng;
 use byteorder::{ByteOrder, LittleEndian, BigEndian, ReadBytesExt, WriteBytesExt};
 
-const WIDTH: usize = 32;
-const HEIGHT: usize = 32;
+use std::io::Read;
+use std::io::Write;
+
+const WIDTH: usize = 16;
+const HEIGHT: usize = 16;
 
 // Packet types
 const REGION_PROPERTIES: u8 = 1;
@@ -43,6 +45,7 @@ impl Agent {
   }
 }
 
+#[derive(Copy, Clone)]
 struct AgentActionPacket {
   agent_id: u32,
   action: u8,
@@ -122,23 +125,48 @@ fn main () {
   
   // Spawn the second agent
   
-  map[8][8].has_agent = true;
-  map[8][8].agent_id = 1;
-  some_agents[1].x = 8;
-  some_agents[1].y = 8;
+  map[2][2].has_agent = true;
+  map[2][2].agent_id = 1;
+  some_agents[1].x = 2;
+  some_agents[1].y = 2;
   
   let mut rng = rand::thread_rng();
   
-  // ZMQ sockets
-  let mut ctx = zmq::Context::new();
+  // Node's built-in IPC channels
+  let mut out_stream = std::io::stdout();
+  let (tx, rx) = std::sync::mpsc::channel();
   
-  let mut cache_sender = ctx.socket(zmq::REP).unwrap();
-  assert!(cache_sender.bind("tcp://127.0.0.1:3001").is_ok());
+  std::thread::spawn(move || {
+    let mut in_stream = std::io::stdin();
+    let mut bytes: [u8; 15] = [0; 15];
+    let mut packet = AgentActionPacket::new();
+    
+    loop {
+      in_stream.read(&mut bytes).unwrap();
+      packet.from_buffer(&bytes);
+      tx.send(packet).unwrap();
+    }
+    
+    /*for byte in in_stream.bytes() {
+      tx.send(byte.unwrap()).unwrap();
+    }*/
+  });
   
-  let mut msg = zmq::Message::new().unwrap();
+  // Notify relay server for:
   
-  let mut update_sender = ctx.socket(zmq::PUB).unwrap();
-  assert!(update_sender.bind("tcp://127.0.0.1:3000").is_ok());
+  // region-properties
+  out_stream.write(&packetize_region_properties()).unwrap();
+  out_stream.flush().unwrap();
+  
+  // agent-cache
+  out_stream.write(&packetize_agent_cache(&some_agents)).unwrap();
+  out_stream.flush().unwrap();
+  
+  // cell-cache
+  out_stream.write(&packetize_cell_cache(&map)).unwrap();
+  out_stream.flush().unwrap();
+  
+  let mut recv_result: Result<AgentActionPacket, std::sync::mpsc::TryRecvError>;
   
   // Main sim loop
   loop {
@@ -147,34 +175,20 @@ fn main () {
     some_agents[0].direction = rng.gen_range(0, 9);
     
     // Respond-to-requests phase
-    cache_sender.recv(&mut msg, zmq::DONTWAIT); // .unwrap() panics on this line
+    recv_result = rx.try_recv();
     
-    if msg.len() >= 5 {
-      println!("Received request for packet type {})", msg[4]);
-      
-      match msg[4] {
-        CELL_CACHE        => cache_sender.send(&packetize_cell_cache(&map), 0).unwrap(),
-        AGENT_CACHE       => cache_sender.send(&packetize_agent_cache(&some_agents), 0).unwrap(),
-        REGION_PROPERTIES => cache_sender.send(&packetize_region_properties(), 0).unwrap(),
-        AGENT_ACTION => {
-          let mut packet = AgentActionPacket::new();
-          packet.from_buffer(&msg);
-          
-          // Assume all actions are for the avatar for now
-          some_agents[1].action = packet.action;
-          some_agents[1].direction = packet.direction;
-          
-          // Reset REP socket. Should probably change to another socket type
-          cache_sender.send(&Vec::new(), 0).unwrap();
-        }
-        _ => println!("Packet type not recognized"),
-      }
+    match recv_result {
+      Ok(packet) => {
+        some_agents[1].action = packet.action;
+        some_agents[1].direction = packet.direction;
+      },
+      _ => {}
     }
-    
-    let mut update_packet = packetize_cell_update();
     
     // Movement phase
     for i in 0..some_agents.len() {
+      let mut update_packet = packetize_cell_update();
+      
       if some_agents[i].direction == 0 || some_agents[i].action != WALK {
         // Agent is not attempting to move
         continue;
@@ -223,16 +237,16 @@ fn main () {
       // Update agent
       some_agents[i].x = target_x;
       some_agents[i].y = target_y;
+      
+      // Send notifications
+      out_stream.write(&update_packet).unwrap();
+      out_stream.flush().unwrap();
     }
     
     // Reset Agent intentions
     for i in 0..some_agents.len() {
       some_agents[i].action = 0;
     }
-    
-    // Notification phase
-    update_sender.send(b"updates", zmq::SNDMORE).unwrap();
-    update_sender.send(&update_packet, 0).unwrap();
     
     sleep_ms(1000);
   }
@@ -263,8 +277,8 @@ fn packetize_cell_cache(map: &[[Cell; HEIGHT]; WIDTH]) -> Vec<u8> {
   
   packet.write_i16::<LittleEndian>(0).unwrap(); // sx
   packet.write_i16::<LittleEndian>(0).unwrap(); // sy
-  packet.write_i16::<LittleEndian>(32).unwrap(); // Width
-  packet.write_i16::<LittleEndian>(32).unwrap(); // Height
+  packet.write_i16::<LittleEndian>(WIDTH as i16).unwrap(); // Width
+  packet.write_i16::<LittleEndian>(HEIGHT as i16).unwrap(); // Height
   
   for i in 0..WIDTH {
     for j in 0..HEIGHT {
@@ -292,8 +306,8 @@ fn packetize_agent_cache(cache: &Vec<Agent>) -> Vec<u8> {
 fn packetize_region_properties() -> Vec<u8> {
   let mut packet = make_base_packet(REGION_PROPERTIES);
   
-  packet.write_i16::<LittleEndian>(WIDTH as i16).unwrap();
-  packet.write_i16::<LittleEndian>(HEIGHT as i16).unwrap();
+  packet.write_i16::<LittleEndian>(WIDTH as i16).unwrap(); // Width
+  packet.write_i16::<LittleEndian>(HEIGHT as i16).unwrap(); // Height
   packet.write_i16::<LittleEndian>(1).unwrap(); // Horizontal subregions
   packet.write_i16::<LittleEndian>(1).unwrap(); // Vertical subregions
   

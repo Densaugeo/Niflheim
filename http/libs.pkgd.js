@@ -1,6 +1,8 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/* jshint unused: false */
+
 var struct_fu = require('struct-fu');
-var buffer = require('buffer'); // jshint ignore:line
+var buffer = require('buffer');
 
 var VERSION = exports.VERSION = 0x00;
 var PROTOCOL = exports.PROTOCOL =  0x1000000*VERSION + 0x17BAC0;
@@ -19,6 +21,15 @@ var TYPES = exports.TYPES = {
   4: 'cell_update',
   5: 'agent_update',
   6: 'agent_action',
+}
+
+var SIZES = exports.SIZES = {
+  1: 17,
+  2: 3345,
+  3: 33,
+  4: 43,
+  5: 33,
+  6: 15,
 }
 
 var agentDefinition = exports.agentDefinition = struct_fu.struct([
@@ -89,11 +100,21 @@ packetDefinitions.agent_action = {
   ])
 }
 
+var getHeader = exports.getHeader = function getHeader(buffer) {
+  var packet = headerDefinition.unpack(buffer);
+  
+  if(packet.protocol !== PROTOCOL) {
+    throw new Error('Expected protocol ' + PROTOCOL.toString(16) + ' but found ' + packet.protocol.toString(16));
+  }
+  
+  return packet;
+}
+
 var fromBuffer = exports.fromBuffer = function fromBuffer(buffer) {
   var packet = headerDefinition.unpack(buffer);
   
   if(packet.protocol !== PROTOCOL) {
-    throw new Error('Expected protocol ' + PROTOCOL.toString(16) + ' but found ' + protocol.toString(16));
+    throw new Error('Expected protocol ' + PROTOCOL.toString(16) + ' but found ' + packet.protocol.toString(16));
   }
   
   if(TYPES[packet.type]) {
@@ -108,7 +129,7 @@ var fromBuffer = exports.fromBuffer = function fromBuffer(buffer) {
     if(type.array) {
       packet.array = [];
       
-      for(var offset = headerDefinition.size + type.base.size; offset < buffer.length; offset += type.array.size) {
+      for(var offset = headerDefinition.size + type.base.size; offset <= buffer.length - type.array.size; offset += type.array.size) {
         packet.array.push(type.array.unpack(buffer, {bytes: offset, bits: 0}));
       }
     }
@@ -169,7 +190,7 @@ var amendCellCache = exports.amendCellCache = function amendCellCache(cellCache,
   
   var cellCacheHeight = cacheBase.height;
   
-  for(var offset = headerDefinition.size + cuDef.base.size; offset < cellUpdate.length; offset += cuDef.array.size) {
+  for(var offset = headerDefinition.size + cuDef.base.size; offset <= cellUpdate.length - cuDef.array.size; offset += cuDef.array.size) {
     var cell = cuDef.array.unpack(cellUpdate, {bytes: offset, bits: 0});
     
     var x = cell.x;
@@ -180,9 +201,11 @@ var amendCellCache = exports.amendCellCache = function amendCellCache(cellCache,
 }
 
 },{"buffer":14,"struct-fu":20}],2:[function(require,module,exports){
+/* jshint unused: false */
+
 var ParticleType = exports.ParticleType = function ParticleType(options) {
   // @prop Number typeID -- 32-bit type identifier
-  this.typeID = (options.typeID & 0xFFFFFFFF) >>> 0;
+  this.typeID = (options.typeID & 0xFFFFFFFF) >>> 0; // jshint ignore:line
   
   // @prop String name -- Common name
   this.name = String(options.name);
