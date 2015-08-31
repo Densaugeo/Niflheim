@@ -87,7 +87,7 @@ document.addEventListener('keydown', function(e) {
   var direction = [101, 105, 102, 99, 98, 97, 100, 103, 104].indexOf(e.keyCode);
   
   if(direction !== -1) {
-    wstest.socket.send(Packets.toBuffer({type: Packets.TYPES.agent_action, regionID: 0, agentID: 1, action: 1, direction: direction}));
+    wstest.socket.send(Packets.toBuffer({type: Packets.TYPES.AGENT_ACTION, regionID: 0, agentID: 1, action: 1, direction: direction}));
   }
 });
 
@@ -133,9 +133,9 @@ var wsMessageHandler = window.wsMessageHandler = function(e) {
       var packet = Packets.fromBuffer(bytes);
       
       switch(packet.type) {
-        case Packets.TYPES.region_properties:
+        case Packets.TYPES.REGION_PROPERTIES:
           break;
-        case Packets.TYPES.cell_cache:
+        case Packets.TYPES.CELL_CACHE:
           for(var i = 0, endi = packet.width; i < endi; ++i) {
             cache.region[i] = [];
             
@@ -151,7 +151,7 @@ var wsMessageHandler = window.wsMessageHandler = function(e) {
           }
           
           break;
-        case Packets.TYPES.agent_cache:
+        case Packets.TYPES.AGENT_CACHE:
           cache.agents = packet.array;
           
           cache.agentsInitialized = true;
@@ -161,7 +161,7 @@ var wsMessageHandler = window.wsMessageHandler = function(e) {
           }
           
           break;
-        case Packets.TYPES.cell_update:
+        case Packets.TYPES.CELL_UPDATE:
           packet.array.forEach(function(v) {
             cache.region[v.x][v.y] = v;
             

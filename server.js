@@ -75,7 +75,7 @@ wsServer.on('connection', function(connection) {
   log('Received WebSocket');
   
   connection.on('message', function(message) {
-    if(message.constructor.name === 'Buffer') {
+    if(message.constructor.name === 'Buffer' && message.length === 17) {
       region.stdin.write(message);
       return;
     }
@@ -146,7 +146,7 @@ region.stdout.on('data', function(data) {
   
   while(true) {
     while(true) {
-      if(buffer.length < 9) {
+      if(buffer.length < packets.headerDefinition.size) {
         streamLeftovers = buffer;
         return;
       }
@@ -159,7 +159,7 @@ region.stdout.on('data', function(data) {
       }
     }
     
-    var packetSize = packets.SIZES[header.type];
+    var packetSize = header.size;
     
     if(buffer.length < packetSize) {
       streamLeftovers = buffer;
@@ -184,22 +184,22 @@ var handlePacket = function(message) {
   }
   
   switch(packet.type) {
-    case packets.TYPES.region_properties:
+    case packets.TYPES.REGION_PROPERTIES:
       regionProperties = packets.fromBuffer(message);
       cache.regionProperties = message;
       log('Received region properties: ' + JSON.stringify(regionProperties));
       break;
-    case packets.TYPES.agent_cache:
-      cache.agents = message;
-      log('Agent cache received (' + message.length + ' bytes)');
-      break;
-    case packets.TYPES.cell_cache:
+    case packets.TYPES.CELL_CACHE:
       cache.cells = message;
       log('Region cache received (' + message.length + ' bytes)');
       
       cellCacheReceived = true;
       break;
-    case packets.TYPES.cell_update:
+    case packets.TYPES.AGENT_CACHE:
+      cache.agents = message;
+      log('Agent cache received (' + message.length + ' bytes)');
+      break;
+    case packets.TYPES.CELL_UPDATE:
       wsServer.clients.forEach(function(v) {
         v.send(message);
       });

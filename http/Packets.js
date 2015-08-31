@@ -3,32 +3,23 @@
 var struct_fu = require('struct-fu');
 var buffer = require('buffer');
 
-var VERSION = exports.VERSION = 0x00;
+var VERSION = exports.VERSION = 0x01;
 var PROTOCOL = exports.PROTOCOL =  0x1000000*VERSION + 0x17BAC0;
 
 var TYPES = exports.TYPES = {
-  region_properties: 1,
-  cell_cache: 2,
-  agent_cache: 3,
-  cell_update: 4,
-  agent_update: 5,
-  agent_action: 6,
+  REGION_PROPERTIES: 1,
+  CELL_CACHE: 2,
+  AGENT_CACHE: 3,
+  CELL_UPDATE: 4,
+  AGENT_UPDATE: 5,
+  AGENT_ACTION: 6,
   
-  1: 'region_properties',
-  2: 'cell_cache',
-  3: 'agent_cache',
-  4: 'cell_update',
-  5: 'agent_update',
-  6: 'agent_action',
-}
-
-var SIZES = exports.SIZES = {
-  1: 17,
-  2: 3345,
-  3: 33,
-  4: 43,
-  5: 33,
-  6: 15,
+  1: 'REGION_PROPERTIES',
+  2: 'CELL_CACHE',
+  3: 'AGENT_CACHE',
+  4: 'CELL_UPDATE',
+  5: 'AGENT_UPDATE',
+  6: 'AGENT_ACTION',
 }
 
 var agentDefinition = exports.agentDefinition = struct_fu.struct([
@@ -47,51 +38,52 @@ var cellDefinition = exports.cellDefinition = struct_fu.struct([
 var headerDefinition = exports.headerDefinition = struct_fu.struct([
   struct_fu.uint32le('protocol'),
   struct_fu.uint8('type'),
+  struct_fu.uint16le('size'),
   struct_fu.uint32le('regionID')
 ]);
 
 var packetDefinitions = exports.packetDefinitions = {};
 
-packetDefinitions.region_properties = {
+packetDefinitions.REGION_PROPERTIES = {
   base: struct_fu.struct([
-    struct_fu.uint16le('width'),
-    struct_fu.uint16le('height'),
-    struct_fu.uint16le('subregionsX'),
-    struct_fu.uint16le('subregionsY')
+    struct_fu.uint16le('sx'),
+    struct_fu.uint16le('sy'),
+    struct_fu.uint8('width'),
+    struct_fu.uint8('height')
   ])
 }
 
-packetDefinitions.cell_cache = {
+packetDefinitions.CELL_CACHE = {
   base: struct_fu.struct([
-    struct_fu.int16le('sx'),
-    struct_fu.int16le('sy'),
-    struct_fu.uint16le('width'),
-    struct_fu.uint16le('height')
+    struct_fu.uint16le('sx'),
+    struct_fu.uint16le('sy'),
+    struct_fu.uint8('width'),
+    struct_fu.uint8('height')
   ]),
   array: cellDefinition
 }
 
-packetDefinitions.agent_cache = {
+packetDefinitions.AGENT_CACHE = {
   base: struct_fu.struct([
-    struct_fu.int16le('sx'),
-    struct_fu.int16le('sy'),
-    struct_fu.uint32le('agentCount'),
+    struct_fu.uint16le('sx'),
+    struct_fu.uint16le('sy'),
+    struct_fu.uint16le('agentCount'),
   ]),
   array: agentDefinition
 }
 
-packetDefinitions.cell_update = {
+packetDefinitions.CELL_UPDATE = {
   base: struct_fu.struct([
-    struct_fu.int16le('sx'),
-    struct_fu.int16le('sy'),
-    struct_fu.uint32le('cellCount')
+    struct_fu.uint16le('sx'),
+    struct_fu.uint16le('sy'),
+    struct_fu.uint16le('cellCount')
   ]),
   array: cellDefinition
 }
 
-packetDefinitions.agent_update = packetDefinitions.agent_cache;
+packetDefinitions.AGENT_UPDATE = packetDefinitions.AGENT_CACHE;
 
-packetDefinitions.agent_action = {
+packetDefinitions.AGENT_ACTION = {
   base: struct_fu.struct([
     struct_fu.uint32le('agentID'),
     struct_fu.uint8('action'),
@@ -144,14 +136,14 @@ var toBuffer = exports.toBuffer = function toBuffer(packet) {
   packet.protocol = PROTOCOL;
   
   var header = headerDefinition.pack(packet);
-  var base = packetDefinitions.agent_action.base.pack(packet);
+  var base = packetDefinitions.AGENT_ACTION.base.pack(packet);
   
   return buffer.Buffer.concat([header, base]);
 }
 
 var amendCellCache = exports.amendCellCache = function amendCellCache(cellCache, cellUpdate) {
-  var ccDef = packetDefinitions.cell_cache;
-  var cuDef = packetDefinitions.cell_update;
+  var ccDef = packetDefinitions.CELL_CACHE;
+  var cuDef = packetDefinitions.CELL_UPDATE;
   
   var cacheHeader = headerDefinition.unpack(cellCache);
   var cacheBase = ccDef.base.unpack(cellCache, {bytes: headerDefinition.size, bits: 0});
@@ -167,24 +159,24 @@ var amendCellCache = exports.amendCellCache = function amendCellCache(cellCache,
     throw new Error('Expected protocol ' + PROTOCOL.toString(16) + ' but found ' + updateHeader.protocol.toString(16));
   }
   
-  if(cacheHeader.type !== TYPES.cell_cache) {
-    throw new Error('Expected cell_cache packet (type ' + TYPES.cell_cache + ') but found type ' + cacheHeader.type);
+  if(cacheHeader.type !== TYPES.CELL_CACHE) {
+    throw new Error('Expected CELL_CACHE packet (type ' + TYPES.CELL_CACHE + ') but found type ' + cacheHeader.type);
   }
   
-  if(updateHeader.type !== TYPES.cell_update) {
-    throw new Error('Expected cell_update packet (type ' + TYPES.cell_update + ') but found type ' + updateHeader.type);
+  if(updateHeader.type !== TYPES.CELL_UPDATE) {
+    throw new Error('Expected CELL_UPDATE packet (type ' + TYPES.CELL_UPDATE + ') but found type ' + updateHeader.type);
   }
   
   if(cacheHeader.regionID !== updateHeader.regionID) {
-    throw new Error('cell_cache is for region ' + cacheHeader.regionID + ' but cell_update is for region ' + updateHeader.regionID);
+    throw new Error('CELL_CACHE is for region ' + cacheHeader.regionID + ' but CELL_UPDATE is for region ' + updateHeader.regionID);
   }
   
   if(cacheBase.sx !== updateBase.sx) {
-    throw new Error('cell_cache is for sx ' + cacheBase.sx + ' but cell_update is for sx ' + updateBase.sy);
+    throw new Error('CELL_CACHE is for sx ' + cacheBase.sx + ' but CELL_UPDATE is for sx ' + updateBase.sy);
   }
   
   if(cacheBase.sy !== updateBase.sy) {
-    throw new Error('cell_cache is for sy ' + cacheBase.sx + ' but cell_update is for sy ' + updateBase.sy);
+    throw new Error('CELL_CACHE is for sy ' + cacheBase.sx + ' but CELL_UPDATE is for sy ' + updateBase.sy);
   }
   
   var cellCacheHeight = cacheBase.height;

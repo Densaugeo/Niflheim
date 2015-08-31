@@ -62,9 +62,9 @@ impl AgentActionPacket {
   }
   
   fn from_buffer(&mut self, buffer: &[u8]) -> () {
-    self.agent_id = LittleEndian::read_u32(&buffer[9..13]);
-    self.action = buffer[13];
-    self.direction = buffer[14];
+    self.agent_id = LittleEndian::read_u32(&buffer[11..15]);
+    self.action = buffer[15];
+    self.direction = buffer[16];
   }
 }
 
@@ -138,7 +138,7 @@ fn main () {
   
   std::thread::spawn(move || {
     let mut in_stream = std::io::stdin();
-    let mut bytes: [u8; 15] = [0; 15];
+    let mut bytes: [u8; 17] = [0; 17];
     let mut packet = AgentActionPacket::new();
     
     loop {
@@ -185,10 +185,10 @@ fn main () {
       _ => {}
     }
     
+    let mut update_packet = packetize_cell_update();
+    
     // Movement phase
     for i in 0..some_agents.len() {
-      let mut update_packet = packetize_cell_update();
-      
       if some_agents[i].direction == 0 || some_agents[i].action != WALK {
         // Agent is not attempting to move
         continue;
@@ -237,16 +237,17 @@ fn main () {
       // Update agent
       some_agents[i].x = target_x;
       some_agents[i].y = target_y;
-      
-      // Send notifications
-      out_stream.write(&update_packet).unwrap();
-      out_stream.flush().unwrap();
     }
     
     // Reset Agent intentions
     for i in 0..some_agents.len() {
       some_agents[i].action = 0;
     }
+    
+    // Send notifications
+    set_packet_size(&mut update_packet);
+    out_stream.write(&update_packet).unwrap();
+    out_stream.flush().unwrap();
     
     sleep_ms(1000);
   }
@@ -255,19 +256,34 @@ fn main () {
 fn make_base_packet(packet_type: u8) -> Vec<u8> {
   let mut packet: Vec<u8> = Vec::new();
   
-  packet.write_u32::<BigEndian>(0xC0BA1700).unwrap(); // Protocol
+  packet.write_u32::<BigEndian>(0xC0BA1701).unwrap(); // Protocol
   packet.push(packet_type);
+  packet.write_u16::<LittleEndian>(11).unwrap(); // Size (bytes)
   packet.write_u32::<LittleEndian>(0).unwrap(); // Region ID
   
   return packet;
 }
 
-fn packetize_cell_update() -> Vec<u8> {
-  let mut packet = make_base_packet(CELL_UPDATE);
+fn set_packet_size(packet: &mut Vec<u8>) {
+  let size = packet.len();
   
-  packet.write_i16::<LittleEndian>(0).unwrap(); // sx
-  packet.write_i16::<LittleEndian>(0).unwrap(); // sy
-  packet.write_u32::<LittleEndian>(0).unwrap(); // Cell count - (probably) unused now
+  if size > 0x10000 {
+    panic!("CELL_CACHE packet is too large! Must be smaller than 2^16");
+  }
+  
+  packet[5] = (size & 0xFF) as u8;
+  packet[6] = (size / 0x100) as u8;
+}
+
+fn packetize_region_properties() -> Vec<u8> {
+  let mut packet = make_base_packet(REGION_PROPERTIES);
+  
+  packet.write_u16::<LittleEndian>(1).unwrap(); // Horizontal subregions
+  packet.write_u16::<LittleEndian>(1).unwrap(); // Vertical subregions
+  packet.push(WIDTH as u8); // Width
+  packet.push(HEIGHT as u8); // Height
+  
+  set_packet_size(&mut packet);
   
   return packet;
 }
@@ -275,10 +291,10 @@ fn packetize_cell_update() -> Vec<u8> {
 fn packetize_cell_cache(map: &[[Cell; HEIGHT]; WIDTH]) -> Vec<u8> {
   let mut packet = make_base_packet(CELL_CACHE);
   
-  packet.write_i16::<LittleEndian>(0).unwrap(); // sx
-  packet.write_i16::<LittleEndian>(0).unwrap(); // sy
-  packet.write_i16::<LittleEndian>(WIDTH as i16).unwrap(); // Width
-  packet.write_i16::<LittleEndian>(HEIGHT as i16).unwrap(); // Height
+  packet.write_u16::<LittleEndian>(0).unwrap(); // sx
+  packet.write_u16::<LittleEndian>(0).unwrap(); // sy
+  packet.push(WIDTH as u8); // Width
+  packet.push(HEIGHT as u8); // Height
   
   for i in 0..WIDTH {
     for j in 0..HEIGHT {
@@ -286,30 +302,36 @@ fn packetize_cell_cache(map: &[[Cell; HEIGHT]; WIDTH]) -> Vec<u8> {
     }
   }
   
+  set_packet_size(&mut packet);
+  
   return packet;
 }
 
 fn packetize_agent_cache(cache: &Vec<Agent>) -> Vec<u8> {
   let mut packet = make_base_packet(AGENT_CACHE);
   
-  packet.write_i16::<LittleEndian>(0).unwrap(); // sx
-  packet.write_i16::<LittleEndian>(0).unwrap(); // sy
-  packet.write_u32::<LittleEndian>(2).unwrap(); // Agent count
+  packet.write_u16::<LittleEndian>(0).unwrap(); // sx
+  packet.write_u16::<LittleEndian>(0).unwrap(); // sy
+  packet.write_u16::<LittleEndian>(2).unwrap(); // Agent count
   
   for i in 0..cache.len() {
     cache[i].append_message_to_vector(&mut packet);
   }
   
+  set_packet_size(&mut packet);
+  
   return packet;
 }
 
-fn packetize_region_properties() -> Vec<u8> {
-  let mut packet = make_base_packet(REGION_PROPERTIES);
+fn packetize_cell_update() -> Vec<u8> {
+  let mut packet = make_base_packet(CELL_UPDATE);
   
-  packet.write_i16::<LittleEndian>(WIDTH as i16).unwrap(); // Width
-  packet.write_i16::<LittleEndian>(HEIGHT as i16).unwrap(); // Height
-  packet.write_i16::<LittleEndian>(1).unwrap(); // Horizontal subregions
-  packet.write_i16::<LittleEndian>(1).unwrap(); // Vertical subregions
+  packet.write_u16::<LittleEndian>(0).unwrap(); // sx
+  packet.write_u16::<LittleEndian>(0).unwrap(); // sy
+  packet.write_u16::<LittleEndian>(0).unwrap(); // Cell count - (probably) unused now
+  
+  set_packet_size(&mut packet);
   
   return packet;
 }
+
