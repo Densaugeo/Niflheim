@@ -84,7 +84,7 @@ sidebar.on('clear', function() {
 });
 
 document.addEventListener('keydown', function(e) {
-  var direction = [101, 105, 102, 99, 98, 97, 100, 103, 104].indexOf(e.keyCode);
+  var direction = [0, 69, 68, 67, 88, 90, 65, 81, 87].indexOf(e.keyCode);
   
   if(direction !== -1) {
     wstest.socket.send(Packets.toBuffer({type: Packets.TYPES.AGENT_ACTION, regionID: 0, agentID: 1, action: 1, direction: direction}));
