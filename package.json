@@ -6,7 +6,7 @@
   "scripts": {
     "install": "npm run install-font-awesome && npm run install-hematite",
     "install-font-awesome": "npm install --prefix=http font-awesome",
-    "install-hematite": "npm install --prefix=http https://github.com/Densaugeo/Hematite",
+    "install-hematite": "npm install --prefix=http git://github.com/Densaugeo/Hematite.git",
     "lint": "jshint *.js http/*.js",
     "build-client": "browserify http/libs.js > http/libs.pkgd.js"
   },
