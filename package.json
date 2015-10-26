@@ -4,11 +4,12 @@
   "description": "Niflheim with Rust",
   "main": "server.js",
   "scripts": {
-    "install": "npm run install-font-awesome && npm run install-hematite",
+    "install": "npm run install-font-awesome && npm run install-hematite && npm run build-client && npm run build-sim",
     "install-font-awesome": "npm install --prefix=http font-awesome",
     "install-hematite": "npm install --prefix=http git://github.com/Densaugeo/Hematite.git",
     "lint": "jshint *.js http/*.js",
-    "build-client": "browserify http/libs.js > http/libs.pkgd.js"
+    "build-client": "browserify http/libs.js > http/libs.pkgd.js",
+    "build-sim": "cargo build"
   },
   "repository": {
     "type": "git",
