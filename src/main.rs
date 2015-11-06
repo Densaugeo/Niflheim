@@ -36,6 +36,7 @@ struct Agent {
   agent_id: u32,
   action: u8,
   direction: u8,
+  arg1: u8,
 }
 
 impl Agent {
@@ -50,6 +51,7 @@ struct AgentActionPacket {
   agent_id: u32,
   action: u8,
   direction: u8,
+  arg1: u8,
 }
 
 impl AgentActionPacket {
@@ -58,6 +60,7 @@ impl AgentActionPacket {
       agent_id: 0,
       action: 0,
       direction: 0,
+      arg1: 0,
     }
   }
   
@@ -65,6 +68,7 @@ impl AgentActionPacket {
     self.agent_id = LittleEndian::read_u32(&buffer[11..15]);
     self.action = buffer[15];
     self.direction = buffer[16];
+    self.arg1 = buffer[17];
   }
 }
 
@@ -113,8 +117,8 @@ fn main () {
   
   let mut some_agents: Vec<Agent> = Vec::new();
   
-  some_agents.push(Agent { species: &SPECIES_LIBRARY[0], x: 0, y: 0, agent_id: 0, action: 0, direction: 0 });
-  some_agents.push(Agent { species: &SPECIES_LIBRARY[1], x: 0, y: 0, agent_id: 1, action: 0, direction: 0 });
+  some_agents.push(Agent { species: &SPECIES_LIBRARY[0], x: 0, y: 0, agent_id: 0, action: 0, direction: 0, arg1: 0 });
+  some_agents.push(Agent { species: &SPECIES_LIBRARY[1], x: 0, y: 0, agent_id: 1, action: 0, direction: 0, arg1: 0 });
   
   // Spawn the first agent
   
@@ -138,7 +142,7 @@ fn main () {
   
   std::thread::spawn(move || {
     let mut in_stream = std::io::stdin();
-    let mut bytes: [u8; 17] = [0; 17];
+    let mut bytes: [u8; 18] = [0; 18];
     let mut packet = AgentActionPacket::new();
     
     loop {
@@ -173,6 +177,7 @@ fn main () {
     // AI phase
     some_agents[0].action = WALK;
     some_agents[0].direction = rng.gen_range(0, 9);
+    some_agents[0].arg1 = 0;
     
     // Respond-to-requests phase
     recv_result = rx.try_recv();
@@ -181,6 +186,7 @@ fn main () {
       Ok(packet) => {
         some_agents[1].action = packet.action;
         some_agents[1].direction = packet.direction;
+        some_agents[1].arg1 = packet.arg1;
       },
       _ => {}
     }

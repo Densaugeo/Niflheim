@@ -75,7 +75,7 @@ wsServer.on('connection', function(connection) {
   log('Received WebSocket');
   
   connection.on('message', function(message) {
-    if(message.constructor.name === 'Buffer' && message.length === 17) {
+    if(message.constructor.name === 'Buffer' && message.length === packets.headerDefinition.size + packets.packetDefinitions.AGENT_ACTION.base.size) {
       region.stdin.write(message);
       return;
     }

@@ -87,7 +87,8 @@ packetDefinitions.AGENT_ACTION = {
   base: struct_fu.struct([
     struct_fu.uint32le('agentID'),
     struct_fu.uint8('action'),
-    struct_fu.uint8('direction')
+    struct_fu.uint8('direction'),
+    struct_fu.uint8('arg1'),
   ])
 }
 
