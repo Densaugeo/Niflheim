@@ -19,6 +19,7 @@
   "author": "Densaugeo",
   "license": "MIT",
   "dependencies": {
+    "browserify": "^11.0.1",
     "good": "^6.4.0",
     "good-console": "^5.1.0",
     "good-file": "^5.1.0",
@@ -30,7 +31,6 @@
   },
   "devDependencies": {
     "asynter": "^0.1.4",
-    "browserify": "^11.0.1",
     "hermes": "git://github.com/Densaugeo/Hermes.git",
     "jshint": "~2.8.0",
     "persistent-ws": "^1.0.0"
