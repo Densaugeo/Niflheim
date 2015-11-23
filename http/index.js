@@ -33,12 +33,14 @@ ctx.fillRect(0, 0, canvas.width, canvas.height);
 ctx.fillStyle = '#000000';
 ctx.fillRect(1, 1, canvas.width - 2, canvas.height - 2);
 
-var sidebar = window.sidebar = new Hematite.Sidebar();
-sidebar.addButton({buttonName: 'land'    , faClass: 'fa-university', title: 'Landing page'       });
-sidebar.addButton({buttonName: 'help'    , faClass: 'fa-question'  , title: 'Help'               });
-sidebar.addButton({buttonName: 'fs'      , faClass: 'fa-arrows-alt', title: 'Fullscreen'         });
-sidebar.addButton({buttonName: 'contrast', faClass: 'fa-adjust'    , title: 'Flip Contrast'      });
-sidebar.addButton({buttonName: 'clear'   , faClass: 'fa-recycle'   , title: 'Clear local storage'});
+var sidebar = fE('ht-sidebar', {}, [
+  fE('ht-instant', {id: 'land'       , faClass: 'fa-university', description: 'Landing page'       }),
+  fE('ht-instant', {id: 'help_button', faClass: 'fa-question'  , description: 'Help'               }),
+  fE('ht-toggle' , {id: 'fs'         , faClass: 'fa-arrows-alt', description: 'Fullscreen'         , faClassAlt: 'fa-arrow-down'}),
+  fE('ht-toggle' , {id: 'contrast'   , faClass: 'fa-adjust'    , description: 'Flip Contrast'      , faClassAlt: 'fa-circle-o'}),
+  fE('ht-instant', {id: 'clear'      , faClass: 'fa-recycle'   , description: 'Clear local storage'})
+]);
+document.body.appendChild(sidebar);
 
 var viewPanel = window.viewPanel = new Hematite.Panel({id: 'viewer', heading: 'First look into Nifleim\'s world'});
 viewPanel.domElement.appendChild(canvas);
@@ -53,15 +55,17 @@ var darkColors = window.darkColors = document.getElementById('dark_colors');
 // Events //
 ////////////
 
-sidebar.on('land', function() {
-  window.location = '/';
+document.querySelector('#land').addEventListener('click', function(e) {
+  if(e.target.id === 'land') {
+    window.location = '/';
+  }
 });
 
-sidebar.on('help', function() {
+document.querySelector('#help_button').addEventListener('click', function() {
   helpPanel.toggleOpen(true);
 });
 
-sidebar.on('fs', function() {
+document.querySelector('#fs').addEventListener('click', function() {
   if(document.fullscreenElement === undefined) {
     document.body.requestFullscreen();
   } else {
@@ -69,8 +73,17 @@ sidebar.on('fs', function() {
   }
 });
 
-sidebar.on('contrast', function() {
-  if(darkColors.parentNode === document.head) {
+// Fullscreen button changes based on fullscreen events (still vendor-prefixed)
+var fsHandler = function() {
+  document.querySelector('#fs').state = (document.fullscreenElement !== undefined);
+}
+document.addEventListener("fullscreenchange", fsHandler);
+document.addEventListener("webkitfullscreenchange", fsHandler);
+document.addEventListener("mozfullscreenchange", fsHandler);
+document.addEventListener("MSFullscreenChange", fsHandler);
+
+document.querySelector('#contrast').addEventListener('click', function(e) {
+  if(e.target.state) {
     document.head.removeChild(darkColors);
     localStorage.contrast = 'light';
   } else {
@@ -79,7 +92,8 @@ sidebar.on('contrast', function() {
   }
 });
 
-sidebar.on('clear', function() {
+
+document.querySelector('#clear').addEventListener('click', function() {
   localStorage.clear();
 });
 
