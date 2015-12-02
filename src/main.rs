@@ -21,7 +21,7 @@ const AGENT_ACTION: u8 = 6;
 
 // Agent actions
 const WALK: u8 = 1;
-const TERRAIN: u8 = 2;
+const TERRAFORM: u8 = 2;
 
 struct Species {
   type_id: u32,
@@ -195,8 +195,8 @@ fn main () {
     
     // Movement phase
     for i in 0..some_agents.len() {
-      if some_agents[i].direction == 0 || some_agents[i].action != WALK {
-        // Agent is not attempting to move
+      if some_agents[i].action == 0 {
+        // Agent is not attempting an action
         continue;
       }
       
@@ -212,37 +212,71 @@ fn main () {
       let target_y: i16 = some_agents[i].y + move_y[(some_agents[i].direction) as usize];
       
       if target_x < 0 || WIDTH as i16 <= target_x || target_y < 0 || HEIGHT as i16 <= target_y {
-        // Agent is attempting to move outside the Region's bounds
+        // Target Cell is outside the Region's bounds
         continue;
       }
       
-      // Separate scopes for target_cell and source_cell, to keep rustc happy
-      {
-        let target_cell = &mut map[target_x as usize][target_y as usize];
-        
-        if target_cell.terrain.pauli || target_cell.has_agent && some_agents[target_cell.agent_id as usize].species.pauli {
-          // Target cell is pauli
-          continue;
-        }
-        
-        // Now we can move
-        
-        // Update target_cell and queue notification
-        target_cell.has_agent = true;
-        target_cell.agent_id = some_agents[i].agent_id;
-        target_cell.append_message_to_vector(&mut update_packet);
+      match some_agents[i].action {
+        WALK => {
+          if some_agents[i].direction == 0 {
+            // Agent is not attempting to move
+            continue;
+          }
+          
+          // Separate scopes for target_cell and source_cell, to keep rustc happy
+          {
+            let target_cell = &mut map[target_x as usize][target_y as usize];
+            
+            if target_cell.terrain.pauli || target_cell.has_agent && some_agents[target_cell.agent_id as usize].species.pauli {
+              // Target cell is pauli
+              continue;
+            }
+            
+            // Now we can move
+            
+            // Update target_cell and queue notification
+            target_cell.has_agent = true;
+            target_cell.agent_id = some_agents[i].agent_id;
+            target_cell.append_message_to_vector(&mut update_packet);
+          }
+          
+          {
+            // Update source_cell before agent coords (so source_cell can be found from old coords)
+            let source_cell = &mut map[some_agents[i].x as usize][some_agents[i].y as usize];
+            source_cell.has_agent = false;
+            source_cell.append_message_to_vector(&mut update_packet);
+          }
+          
+          // Update agent
+          some_agents[i].x = target_x;
+          some_agents[i].y = target_y;
+        },
+        TERRAFORM => {
+          let target_cell = &mut map[target_x as usize][target_y as usize];
+          
+          if some_agents[i].arg1 as usize >= TERRAIN_LIBRARY.len() {
+            // New Terrain type not recognized
+            continue;
+          }
+          
+          let new_terrain: &'static Terrain = &TERRAIN_LIBRARY[some_agents[i].arg1 as usize];
+          
+          if target_cell.terrain.type_id == new_terrain.type_id {
+            // New Terrain is same as old; nothing happens
+            continue;
+          }
+          
+          if target_cell.has_agent && new_terrain.pauli {
+            // Can't make cell pauli while it is occupied
+            continue;
+          }
+          
+          // Now change Cell and queue update
+          target_cell.terrain = new_terrain;
+          target_cell.append_message_to_vector(&mut update_packet);
+        },
+        _ => {}
       }
-      
-      {
-        // Update source_cell before agent coords (so source_cell can be found from old coords)
-        let source_cell = &mut map[some_agents[i].x as usize][some_agents[i].y as usize];
-        source_cell.has_agent = false;
-        source_cell.append_message_to_vector(&mut update_packet);
-      }
-      
-      // Update agent
-      some_agents[i].x = target_x;
-      some_agents[i].y = target_y;
     }
     
     // Reset Agent intentions

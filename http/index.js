@@ -34,11 +34,13 @@ ctx.fillStyle = '#000000';
 ctx.fillRect(1, 1, canvas.width - 2, canvas.height - 2);
 
 var sidebar = fE('ht-sidebar', {}, [
-  fE('ht-instant', {id: 'land'       , faClass: 'fa-university', description: 'Landing page'       }),
   fE('ht-instant', {id: 'help_button', faClass: 'fa-question'  , description: 'Help'               }),
   fE('ht-toggle' , {id: 'fs'         , faClass: 'fa-arrows-alt', description: 'Fullscreen'         , faClassAlt: 'fa-arrow-down'}),
   fE('ht-toggle' , {id: 'contrast'   , faClass: 'fa-adjust'    , description: 'Flip Contrast'      , faClassAlt: 'fa-circle-o'}),
-  fE('ht-instant', {id: 'clear'      , faClass: 'fa-recycle'   , description: 'Clear local storage'})
+  fE('ht-instant', {id: 'clear'      , faClass: 'fa-recycle'   , description: 'Clear local storage'}),
+  fE('ht-select' , {action: 2, arg1: 0, textContent: '.'       , description: 'Morph terrain to grass'}),
+  fE('ht-select' , {action: 2, arg1: 1, textContent: '~'       , description: 'Morph terrain to water'}),
+  fE('ht-select' , {action: 2, arg1: 2, textContent: '#'       , description: 'Morph terrain to wall'})
 ]);
 document.body.appendChild(sidebar);
 
@@ -54,12 +56,6 @@ var darkColors = window.darkColors = document.getElementById('dark_colors');
 ////////////
 // Events //
 ////////////
-
-document.querySelector('#land').addEventListener('click', function(e) {
-  if(e.target.id === 'land') {
-    window.location = '/';
-  }
-});
 
 document.querySelector('#help_button').addEventListener('click', function() {
   helpPanel.toggleOpen(true);
@@ -101,7 +97,12 @@ document.addEventListener('keydown', function(e) {
   var direction = [0, 69, 68, 67, 88, 90, 65, 81, 87].indexOf(e.keyCode);
   
   if(direction !== -1) {
-    wstest.socket.send(Packets.toBuffer({type: Packets.TYPES.AGENT_ACTION, regionID: 0, agentID: 1, action: 1, direction: direction}));
+    var action = sidebar.selection ? sidebar.selection.action : 1;
+    var arg1 = sidebar.selection ? sidebar.selection.arg1 : 0;
+    
+    sidebar.selection = null;
+    
+    wstest.socket.send(Packets.toBuffer({type: Packets.TYPES.AGENT_ACTION, regionID: 0, agentID: 1, action: action, direction: direction, arg1: arg1}));
   }
 });
 
