@@ -180,15 +180,17 @@ fn main () {
     some_agents[0].arg1 = 0;
     
     // Respond-to-requests phase
-    recv_result = rx.try_recv();
-    
-    match recv_result {
-      Ok(packet) => {
-        some_agents[1].action = packet.action;
-        some_agents[1].direction = packet.direction;
-        some_agents[1].arg1 = packet.arg1;
-      },
-      _ => {}
+    loop {
+      recv_result = rx.try_recv();
+      
+      match recv_result {
+        Ok(packet) => {
+          some_agents[1].action = packet.action;
+          some_agents[1].direction = packet.direction;
+          some_agents[1].arg1 = packet.arg1;
+        },
+        _ => { break; }
+      }
     }
     
     let mut update_packet = packetize_cell_update();
