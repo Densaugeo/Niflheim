@@ -24,19 +24,19 @@
   "license": "MIT",
   "dependencies": {
     "browserify": "~13.0.0",
-    "good": "^6.4.0",
-    "good-console": "^5.1.0",
-    "good-file": "^5.1.0",
+    "good": "~6.4.0",
+    "good-console": "~5.2.0",
+    "good-file": "~5.1.1",
     "hapi": "~12.1.0",
-    "inert": "^3.0.1",
+    "inert": "~3.2.0",
     "moment": "~2.11.1",
-    "struct-fu": "^1.0.0",
+    "struct-fu": "~1.0.0",
     "ws": "~1.0.1"
   },
   "devDependencies": {
-    "asynter": "^0.1.4",
+    "asynter": "0.1.4",
     "hermes": "git://github.com/Densaugeo/Hermes.git",
     "jshint": "~2.9.1",
-    "persistent-ws": "^1.0.0"
+    "persistent-ws": "~1.0.0"
   }
 }
