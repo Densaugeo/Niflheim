@@ -8,6 +8,9 @@ use byteorder::{ByteOrder, LittleEndian, BigEndian, ReadBytesExt, WriteBytesExt}
 use std::io::Read;
 use std::io::Write;
 
+mod particles;
+use particles::{Agent, Terrain, Cell};
+
 const WIDTH: usize = 16;
 const HEIGHT: usize = 16;
 
@@ -22,29 +25,6 @@ const AGENT_ACTION: u8 = 6;
 // Agent actions
 const WALK: u8 = 1;
 const TERRAFORM: u8 = 2;
-
-struct Species {
-  type_id: u32,
-  pauli: bool,
-}
-
-#[derive(Copy, Clone)]
-struct Agent {
-  species: &'static Species,
-  x: i16,
-  y: i16,
-  agent_id: u32,
-  action: u8,
-  direction: u8,
-  arg1: u8,
-}
-
-impl Agent {
-  fn append_message_to_vector(&self, vector: &mut Vec<u8>) {
-    vector.write_u32::<LittleEndian>(self.species.type_id).unwrap();
-    vector.write_u32::<LittleEndian>(self.agent_id).unwrap();
-  }
-}
 
 #[derive(Copy, Clone)]
 struct AgentActionPacket {
@@ -72,53 +52,19 @@ impl AgentActionPacket {
   }
 }
 
-struct Terrain {
-  type_id: u32,
-  pauli: bool,
-}
-
-#[derive(Copy, Clone)]
-struct Cell {
-  x: i16,
-  y: i16,
-  terrain: &'static Terrain,
-  has_agent: bool,
-  agent_id: u32,
-}
-
-impl Cell {
-  fn append_message_to_vector(&self, vector: &mut Vec<u8>) {
-    vector.write_i16::<LittleEndian>(self.x).unwrap();
-    vector.write_i16::<LittleEndian>(self.y).unwrap();
-    vector.write_u32::<LittleEndian>(self.terrain.type_id).unwrap();
-    vector.push(self.has_agent as u8);
-    vector.write_u32::<LittleEndian>(self.agent_id).unwrap();
-  }
-}
-
-static TERRAIN_LIBRARY: [Terrain; 2] = [
-  Terrain { type_id: 0, pauli: false }, // Grass
-  Terrain { type_id: 1, pauli: true  }, // Water
-];
-
-static SPECIES_LIBRARY: [Species; 2] = [
-  Species { type_id: 0, pauli: true  }, // Germlin
-  Species { type_id: 1, pauli: true  }, // Basic avatar
-];
-
 fn main () {
-  let mut map = [[Cell { x: 0, y: 0, terrain: &TERRAIN_LIBRARY[0], has_agent: false, agent_id: 0 }; HEIGHT]; WIDTH];
+  let mut map = [[Cell { x: 0, y: 0, terrain: particles::GRASS, has_agent: false, agent_id: 0 }; HEIGHT]; WIDTH];
   
   for i in 0..WIDTH {
     for j in 0..HEIGHT {
-      map[i][j] = Cell { x: i as i16, y: j as i16, terrain: &TERRAIN_LIBRARY[0], has_agent: false, agent_id: 0 };
+      map[i][j] = Cell { x: i as i16, y: j as i16, terrain: particles::GRASS, has_agent: false, agent_id: 0 };
     }
   }
   
   let mut some_agents: Vec<Agent> = Vec::new();
   
-  some_agents.push(Agent { species: &SPECIES_LIBRARY[0], x: 0, y: 0, agent_id: 0, action: 0, direction: 0, arg1: 0 });
-  some_agents.push(Agent { species: &SPECIES_LIBRARY[1], x: 0, y: 0, agent_id: 1, action: 0, direction: 0, arg1: 0 });
+  some_agents.push(Agent { species: particles::GREMLIN, x: 0, y: 0, agent_id: 0, action: 0, direction: 0, arg1: 0 });
+  some_agents.push(Agent { species: particles::AVATAR, x: 0, y: 0, agent_id: 1, action: 0, direction: 0, arg1: 0 });
   
   // Spawn the first agent
   
@@ -239,14 +185,14 @@ fn main () {
             // Update target_cell and queue notification
             target_cell.has_agent = true;
             target_cell.agent_id = some_agents[i].agent_id;
-            target_cell.append_message_to_vector(&mut update_packet);
+            target_cell.serialize(&mut update_packet);
           }
           
           {
             // Update source_cell before agent coords (so source_cell can be found from old coords)
             let source_cell = &mut map[some_agents[i].x as usize][some_agents[i].y as usize];
             source_cell.has_agent = false;
-            source_cell.append_message_to_vector(&mut update_packet);
+            source_cell.serialize(&mut update_packet);
           }
           
           // Update agent
@@ -256,17 +202,10 @@ fn main () {
         TERRAFORM => {
           let target_cell = &mut map[target_x as usize][target_y as usize];
           
-          if some_agents[i].arg1 as usize >= TERRAIN_LIBRARY.len() {
-            // New Terrain type not recognized
-            continue;
-          }
-          
-          let new_terrain: &'static Terrain = &TERRAIN_LIBRARY[some_agents[i].arg1 as usize];
-          
-          if target_cell.terrain.type_id == new_terrain.type_id {
-            // New Terrain is same as old; nothing happens
-            continue;
-          }
+          let new_terrain = match particles::Terrain::deserialize(some_agents[i].arg1 as u32) {
+            None => continue, // New Terrain type not recognized
+            Some(val) => val
+          };
           
           if target_cell.has_agent && new_terrain.pauli {
             // Can't make cell pauli while it is occupied
@@ -275,7 +214,7 @@ fn main () {
           
           // Now change Cell and queue update
           target_cell.terrain = new_terrain;
-          target_cell.append_message_to_vector(&mut update_packet);
+          target_cell.serialize(&mut update_packet);
         },
         _ => {}
       }
@@ -340,7 +279,7 @@ fn packetize_cell_cache(map: &[[Cell; HEIGHT]; WIDTH]) -> Vec<u8> {
   
   for i in 0..WIDTH {
     for j in 0..HEIGHT {
-      map[i][j].append_message_to_vector(&mut packet);
+      map[i][j].serialize(&mut packet);
     }
   }
   
@@ -357,7 +296,7 @@ fn packetize_agent_cache(cache: &Vec<Agent>) -> Vec<u8> {
   packet.write_u16::<LittleEndian>(2).unwrap(); // Agent count
   
   for i in 0..cache.len() {
-    cache[i].append_message_to_vector(&mut packet);
+    cache[i].serialize(&mut packet);
   }
   
   set_packet_size(&mut packet);

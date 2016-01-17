@@ -13,7 +13,8 @@
     "install-hematite": "npm install --prefix=http git://github.com/Densaugeo/Hematite.git",
     "lint": "jshint *.js http/*.js",
     "build-client": "browserify http/libs.js > http/libs.pkgd.js",
-    "build-sim": "cargo build"
+    "build-sim": "cargo build",
+    "test": "cargo test"
   },
   "repository": {
     "type": "git",
