@@ -40,7 +40,6 @@ impl Species {
   }
 }
 
-#[derive(Copy, Clone)]
 pub struct Agent {
   pub species: &'static Species,
   pub x: i16,
