@@ -65,7 +65,7 @@ fn main () {
     // std::ptr:write is like assignment, but prevents destructors from running
     for i in 0..WIDTH {
       for j in 0..HEIGHT {
-        std::ptr::write(&mut map[i][j], Cell { x: i as i16, y: j as i16, terrain: particles::GRASS, has_agent: false, agent_id: 0, agent: None });
+        std::ptr::write(&mut map[i][j], Cell { x: i as i16, y: j as i16, terrain: particles::GRASS, has_agent: false, agent_id: 0 });
       }
     }
   }
@@ -130,9 +130,12 @@ fn main () {
   // Main sim loop
   loop {
     // AI phase
-    some_agents[0].action = WALK;
-    some_agents[0].direction = rng.gen_range(0, 9);
-    some_agents[0].arg1 = 0;
+    {
+      let agent = &mut some_agents[0];
+      agent.action = WALK;
+      agent.direction = rng.gen_range(0, 9);
+      agent.arg1 = 0;
+    }
     
     // Respond-to-requests phase
     loop {
@@ -140,9 +143,10 @@ fn main () {
       
       match recv_result {
         Ok(packet) => {
-          some_agents[1].action = packet.action;
-          some_agents[1].direction = packet.direction;
-          some_agents[1].arg1 = packet.arg1;
+          let agent = &mut some_agents[1];
+          agent.action = packet.action;
+          agent.direction = packet.direction;
+          agent.arg1 = packet.arg1;
         },
         _ => { break; }
       }
@@ -151,13 +155,13 @@ fn main () {
     let mut update_packet = packetize_cell_update();
     
     // Movement phase
-    for i in 0..some_agents.len() {
-      if some_agents[i].action == 0 {
+    for agent in &mut some_agents {
+      if agent.action == 0 {
         // Agent is not attempting an action
         continue;
       }
       
-      if some_agents[i].direction > 8 {
+      if agent.direction > 8 {
         // Invalid direction
         continue;
       }
@@ -165,17 +169,17 @@ fn main () {
       let move_x: [i16; 9] = [0, 1, 1, 1, 0, -1, -1, -1, 0];
       let move_y: [i16; 9] = [0, -1, 0, 1, 1, 1, 0, -1, -1];
       
-      let target_x: i16 = some_agents[i].x + move_x[(some_agents[i].direction) as usize];
-      let target_y: i16 = some_agents[i].y + move_y[(some_agents[i].direction) as usize];
+      let target_x: i16 = agent.x + move_x[(agent.direction) as usize];
+      let target_y: i16 = agent.y + move_y[(agent.direction) as usize];
       
       if target_x < 0 || WIDTH as i16 <= target_x || target_y < 0 || HEIGHT as i16 <= target_y {
         // Target Cell is outside the Region's bounds
         continue;
       }
       
-      match some_agents[i].action {
+      match agent.action {
         WALK => {
-          if some_agents[i].direction == 0 {
+          if agent.direction == 0 {
             // Agent is not attempting to move
             continue;
           }
@@ -184,7 +188,8 @@ fn main () {
           {
             let target_cell = &mut map[target_x as usize][target_y as usize];
             
-            if target_cell.terrain.pauli || target_cell.has_agent && some_agents[target_cell.agent_id as usize].species.pauli {
+            // Temporarily assume all agents are pauli to make moving pointers to cell easier
+            if target_cell.terrain.pauli || target_cell.has_agent /*&& some_agents[target_cell.agent_id as usize].species.pauli*/ {
               // Target cell is pauli
               continue;
             }
@@ -193,25 +198,25 @@ fn main () {
             
             // Update target_cell and queue notification
             target_cell.has_agent = true;
-            target_cell.agent_id = some_agents[i].agent_id;
+            target_cell.agent_id = agent.agent_id;
             target_cell.serialize(&mut update_packet);
           }
           
           {
             // Update source_cell before agent coords (so source_cell can be found from old coords)
-            let source_cell = &mut map[some_agents[i].x as usize][some_agents[i].y as usize];
+            let source_cell = &mut map[agent.x as usize][agent.y as usize];
             source_cell.has_agent = false;
             source_cell.serialize(&mut update_packet);
           }
           
           // Update agent
-          some_agents[i].x = target_x;
-          some_agents[i].y = target_y;
+          agent.x = target_x;
+          agent.y = target_y;
         },
         TERRAFORM => {
           let target_cell = &mut map[target_x as usize][target_y as usize];
           
-          let new_terrain = match particles::Terrain::deserialize(some_agents[i].arg1 as u32) {
+          let new_terrain = match particles::Terrain::deserialize(agent.arg1 as u32) {
             None => continue, // New Terrain type not recognized
             Some(val) => val
           };
@@ -230,8 +235,8 @@ fn main () {
     }
     
     // Reset Agent intentions
-    for i in 0..some_agents.len() {
-      some_agents[i].action = 0;
+    for agent in &mut some_agents {
+      agent.action = 0;
     }
     
     // Send notifications
@@ -304,8 +309,8 @@ fn packetize_agent_cache(cache: &Vec<Agent>) -> Vec<u8> {
   packet.write_u16::<LittleEndian>(0).unwrap(); // sy
   packet.write_u16::<LittleEndian>(2).unwrap(); // Agent count
   
-  for i in 0..cache.len() {
-    cache[i].serialize(&mut packet);
+  for agent in cache {
+    agent.serialize(&mut packet);
   }
   
   set_packet_size(&mut packet);
