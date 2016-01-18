@@ -53,11 +53,20 @@ impl AgentActionPacket {
 }
 
 fn main () {
-  let mut map = [[Cell { x: 0, y: 0, terrain: particles::GRASS, has_agent: false, agent_id: 0 }; HEIGHT]; WIDTH];
+  let mut map: [[Cell; WIDTH]; HEIGHT];
   
-  for i in 0..WIDTH {
-    for j in 0..HEIGHT {
-      map[i][j] = Cell { x: i as i16, y: j as i16, terrain: particles::GRASS, has_agent: false, agent_id: 0 };
+  // Because apparently the only other way to initialize an array with non-copyable elements is with
+  // Default::default(), which only supprts up to 32 elements because of a weird implementation possiblly
+  // involving macros that can't count?
+  // So, I resort to the dark arts
+  unsafe {
+    map = std::mem::uninitialized();
+    
+    // std::ptr:write is like assignment, but prevents destructors from running
+    for i in 0..WIDTH {
+      for j in 0..HEIGHT {
+        std::ptr::write(&mut map[i][j], Cell { x: i as i16, y: j as i16, terrain: particles::GRASS, has_agent: false, agent_id: 0, agent: None });
+      }
     }
   }
   

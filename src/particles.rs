@@ -73,7 +73,6 @@ pub static SPECIES_LIBRARY: [Species; 2] = [
 pub static GREMLIN: &'static Species = &Species { type_id: 0, pauli: true };
 pub static AVATAR : &'static Species = &Species { type_id: 1, pauli: true };
 
-#[derive(Copy, Clone)]
 pub struct Cell {
   pub x: i16,
   pub y: i16,
