@@ -26,7 +26,6 @@ const AGENT_ACTION: u8 = 6;
 const WALK: u8 = 1;
 const TERRAFORM: u8 = 2;
 
-#[derive(Copy, Clone)]
 struct AgentActionPacket {
   agent_id: u32,
   action: u8,
@@ -34,21 +33,18 @@ struct AgentActionPacket {
   arg1: u8,
 }
 
-impl AgentActionPacket {
-  fn new() -> AgentActionPacket {
+trait Packet {
+  fn deserialize(buffer: &[u8]) -> Self;
+}
+
+impl Packet for AgentActionPacket {
+  fn deserialize(buffer: &[u8]) -> Self {
     AgentActionPacket {
-      agent_id: 0,
-      action: 0,
-      direction: 0,
-      arg1: 0,
+      agent_id: LittleEndian::read_u32(&buffer[11..15]),
+      action: buffer[15],
+      direction: buffer[16],
+      arg1: buffer[17],
     }
-  }
-  
-  fn from_buffer(&mut self, buffer: &[u8]) -> () {
-    self.agent_id = LittleEndian::read_u32(&buffer[11..15]);
-    self.action = buffer[15];
-    self.direction = buffer[16];
-    self.arg1 = buffer[17];
   }
 }
 
@@ -98,11 +94,11 @@ fn main () {
   std::thread::spawn(move || {
     let mut in_stream = std::io::stdin();
     let mut bytes: [u8; 18] = [0; 18];
-    let mut packet = AgentActionPacket::new();
     
     loop {
       in_stream.read(&mut bytes).unwrap();
-      packet.from_buffer(&bytes);
+      
+      let packet = AgentActionPacket::deserialize(&bytes);
       tx.send(packet).unwrap();
     }
     
