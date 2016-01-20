@@ -1,17 +1,9 @@
-extern crate byteorder;
-
-use byteorder::{LittleEndian, WriteBytesExt};
-
 pub struct Terrain {
-  type_id: u32,
+  pub type_id: u32,
   pub pauli: bool,
 }
 
 impl Terrain {
-  pub fn serialize(&self) -> u32 {
-    self.type_id
-  }
-  
   pub fn deserialize(i: u32) -> Option<&'static Terrain> {
     if (i as usize) >= TERRAIN_LIBRARY.len() {
       return None;
@@ -22,22 +14,8 @@ impl Terrain {
 }
 
 pub struct Species {
-  type_id: u32,
+  pub type_id: u32,
   pub pauli: bool,
-}
-
-impl Species {
-  pub fn serialize(&self) -> u32 {
-    self.type_id
-  }
-  
-  pub fn deserialize(i: u32) -> Option<&'static Species> {
-    if (i as usize) >= SPECIES_LIBRARY.len() {
-      return None;
-    }
-    
-    Some(&SPECIES_LIBRARY[i as usize])
-  }
 }
 
 pub struct Agent {
@@ -48,13 +26,6 @@ pub struct Agent {
   pub action: u8,
   pub direction: u8,
   pub arg1: u8,
-}
-
-impl Agent {
-  pub fn serialize(&self, vector: &mut Vec<u8>) {
-    vector.write_u32::<LittleEndian>(self.species.type_id).unwrap();
-    vector.write_u32::<LittleEndian>(self.agent_id).unwrap();
-  }
 }
 
 pub static TERRAIN_LIBRARY: [Terrain; 2] = [
@@ -78,16 +49,6 @@ pub struct Cell {
   pub terrain: &'static Terrain,
   pub has_agent: bool,
   pub agent_id: u32,
-}
-
-impl Cell {
-  pub fn serialize(&self, vector: &mut Vec<u8>) {
-    vector.write_i16::<LittleEndian>(self.x).unwrap();
-    vector.write_i16::<LittleEndian>(self.y).unwrap();
-    vector.write_u32::<LittleEndian>(self.terrain.serialize()).unwrap();
-    vector.push(self.has_agent as u8);
-    vector.write_u32::<LittleEndian>(self.agent_id).unwrap();
-  }
 }
 
 #[cfg(test)]

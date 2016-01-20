@@ -7,5 +7,4 @@ authors = [ "Densaugeo <foo@bar.com>" ]
 [dependencies]
 
 rand = "0.3.*"
-byteorder = "0.3.*"
 
