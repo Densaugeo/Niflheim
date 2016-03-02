@@ -9,8 +9,8 @@
   "main": "server.js",
   "scripts": {
     "install": "npm run install-font-awesome && npm run install-hematite && npm run build-client && npm run build-sim",
-    "install-font-awesome": "npm install --prefix=http font-awesome",
-    "install-hematite": "npm install --prefix=http git://github.com/Densaugeo/Hematite.git",
+    "install-font-awesome": "rm -rf http/node_modules/font-awesome && mv node_modules/font-awesome http/node_modules",
+    "install-hematite": "rm -rf http/node_modules/hematite && mv node_modules/hematite http/node_modules",
     "lint": "jshint *.js http/*.js",
     "build-client": "browserify http/libs.js > http/libs.pkgd.js",
     "build-sim": "cargo build",
@@ -24,20 +24,22 @@
   "author": "Densaugeo",
   "license": "MIT",
   "dependencies": {
+    "asynter": "0.1.4",
     "browserify": "~13.0.0",
+    "font-awesome": "~4.5.0",
     "good": "~6.4.0",
     "good-console": "~5.2.0",
     "good-file": "~5.1.1",
     "hapi": "~12.1.0",
+    "hematite": "git://github.com/Densaugeo/Hematite.git#1.1.0",
+    "hermes": "git://github.com/Densaugeo/Hermes.git#0.0.5",
     "inert": "~3.2.0",
     "moment": "~2.11.1",
+    "persistent-ws": "~1.0.0",
     "struct-fu": "~1.0.0",
     "ws": "~1.0.1"
   },
   "devDependencies": {
-    "asynter": "0.1.4",
-    "hermes": "git://github.com/Densaugeo/Hermes.git",
     "jshint": "~2.9.1",
-    "persistent-ws": "~1.0.0"
   }
 }
