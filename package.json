@@ -22,7 +22,7 @@
   },
   "keywords": [],
   "author": "Densaugeo",
-  "license": "MIT",
+  "license": "LGPL-2.1+",
   "dependencies": {
     "asynter": "0.1.4",
     "browserify": "~13.0.0",
