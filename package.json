@@ -1,12 +1,28 @@
 {
   "name": "niflheim",
   "version": "0.0.0",
-  "engines": {
-    "node": ">=4.0.0",
-    "npm": ">=2.0.0"
-  },
   "description": "Niflheim with Rust",
+  "keywords": [],
+  "homepage": "https://github.com/Densaugeo/Niflheim",
+  "bugs": "https://github.com/Densaugeo/Niflheim/issues",
+  "license": "LGPL-2.1+",
+  "author": "Densaugeo (http://madengineersworkshop.net/)",
+  "contributors": [],
+  "files": [
+    "http",
+    "src",
+    "Cargo.toml",
+    "default_config.json",
+    "LICENSE",
+    "package.json",
+    "README.md",
+    "server.js"
+  ],
   "main": "server.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Densaugeo/Niflheim.git"
+  },
   "scripts": {
     "install": "npm run install-font-awesome && npm run install-hematite && npm run build-client && npm run build-sim",
     "install-font-awesome": "rm -rf http/node_modules/font-awesome && mv node_modules/font-awesome http/node_modules",
@@ -16,13 +32,7 @@
     "build-sim": "cargo build",
     "test": "cargo test"
   },
-  "repository": {
-    "type": "git",
-    "url": "N/A"
-  },
-  "keywords": [],
-  "author": "Densaugeo",
-  "license": "LGPL-2.1+",
+  "config": {},
   "dependencies": {
     "asynter": "0.1.4",
     "browserify": "~13.0.0",
@@ -41,5 +51,9 @@
   },
   "devDependencies": {
     "jshint": "~2.9.1",
+  },
+  "engines": {
+    "node": ">=4.0.0",
+    "npm": ">=2.0.0"
   }
 }
