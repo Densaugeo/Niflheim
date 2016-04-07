@@ -3,6 +3,7 @@
 node_modules
 *.pkgd.js
 *.min.js
+http/node_modules
 http/*.pkgd.js
 http/*.min.js
 
