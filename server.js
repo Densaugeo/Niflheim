@@ -61,10 +61,6 @@ server.route({
   }
 });
 
-server.start(function () {
-  log('Server running at: ' + server.info.uri);
-});
-
 ///////////////
 // WS server //
 ///////////////
@@ -118,11 +114,18 @@ if(!options.silent) {
 server.register({
   register: require('good'),
   options: {
-    opsInterval: 15000,
-    reporters: [{
-      reporter: require('good-console'),
-      events: eventsToLog
-    }]
+    ops: {
+      interval: 15000
+    },
+    reporters: {
+      console: [{
+        module: 'good-squeeze',
+        name: 'Squeeze',
+        args: [eventsToLog]
+      }, {
+        module: 'good-console'
+      }, 'stdout']
+    }
   }
 }, function () {});
 
@@ -210,6 +213,11 @@ var handlePacket = function(message) {
       break;
   }
 }
+
+// Moved here because it must come after Hapi's loggers are registered
+server.start(function () {
+  log('Server running at: ' + server.info.uri);
+});
 
 // Link to region //
 

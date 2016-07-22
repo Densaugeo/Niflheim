@@ -36,18 +36,19 @@
   "dependencies": {
     "asynter": "0.1.4",
     "browserify": "~13.0.0",
-    "font-awesome": "~4.5.0",
-    "good": "~6.4.0",
-    "good-console": "~5.2.0",
-    "good-file": "~5.1.1",
-    "hapi": "~12.1.0",
+    "font-awesome": "~4.6.3",
+    "good": "~7.0.1",
+    "good-console": "~6.1.2",
+    "good-file": "~6.0.1",
+    "good-squeeze": "~4.0.0",
+    "hapi": "~13.5.0",
     "hematite": "git://github.com/Densaugeo/Hematite.git#1.1.0",
     "hermes": "git://github.com/Densaugeo/Hermes.git#0.0.5",
-    "inert": "~3.2.0",
-    "moment": "~2.11.1",
+    "inert": "~4.0.1",
+    "moment": "~2.14.1",
     "persistent-ws": "~1.0.4",
     "struct-fu": "~1.0.0",
-    "ws": "~1.0.1"
+    "ws": "~1.1.1"
   },
   "devDependencies": {
     "jshint": "~2.9.1"
