@@ -9,7 +9,6 @@ http/*.min.js
 
 # Rust output
 target
-Cargo.lock
 
 config.json
 *.crt
