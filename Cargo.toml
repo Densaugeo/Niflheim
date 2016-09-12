@@ -1,10 +1,11 @@
 [package]
-
-name = "sim"
+name = "niflheim_sim"
 version = "0.0.1"
 authors = [ "Densaugeo <foo@bar.com>" ]
 
 [dependencies]
-
-rand = "0.3.*"
-
+serde = "0.8"
+serde_json = "0.8"
+serde_macros = "0.8"
+schedule_recv = "0.1"
+rand = "0.3"

@@ -1,5 +1,7 @@
 # Niflheim
 
+Major rewrite in progress.
+
 [![License: GPL](https://img.shields.io/badge/license-GPL-blue.svg)](https://www.gnu.org/licenses/gpl.html)
 [![Dependency Status](https://gemnasium.com/Densaugeo/Niflheim.svg)](https://gemnasium.com/Densaugeo/Niflheim)
 
