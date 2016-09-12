@@ -1,5 +1,6 @@
 # Niflheim
 
+[![License: GPL](https://img.shields.io/badge/license-GPL-blue.svg)](https://www.gnu.org/licenses/gpl.html)
 [![Dependency Status](https://gemnasium.com/Densaugeo/Niflheim.svg)](https://gemnasium.com/Densaugeo/Niflheim)
 
 Make ssl certificates:
@@ -40,3 +41,7 @@ cargo build
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
 # or add LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib to ~/.bash_profile
 ~~~
+
+## License
+
+GPL
