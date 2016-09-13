@@ -53,6 +53,35 @@ struct Map {
   tiles: Vec<Tile>,
 }
 
+impl Map {
+  fn new() -> Self {
+    Map { terrains: Vec::new(), tiles: Vec::new() }
+  }
+}
+
+struct MapCache {
+  map: Map,
+  tile_indices: Box<[[Option<u16>; 256]; 256]>,
+}
+
+impl MapCache {
+  fn new() -> Self {
+    MapCache { map: Map::new(), tile_indices: Box::new([[None; 256]; 256]) }
+  }
+  
+  fn update_tile(&mut self, tile: Tile) -> () {
+    match self.tile_indices[tile.x as usize][tile.y as usize] {
+      Some(index) => {
+        self.map.tiles[index as usize] = tile;
+      },
+      None => {
+        self.tile_indices[tile.x as usize][tile.y as usize] = Some(self.map.tiles.len() as u16);
+        self.map.tiles.push(tile);
+      }
+    }
+  }
+}
+
 use std::io::prelude::*;
 
 macro_rules! try_or_exit {
@@ -72,18 +101,6 @@ fn get_map() -> Map {
   try_or_exit!(serde_json::from_str(s.as_str()), "Error parsing map file")
 }
 
-fn update_map_cache(tile: Tile, map_cache: &mut Map, map_cache_indices: &mut [[Option<u16>; 256]; 256]) -> () {
-  match map_cache_indices[tile.x as usize][tile.y as usize] {
-    Some(index) => {
-      map_cache.tiles[index as usize] = tile;
-    },
-    None => {
-      map_cache_indices[tile.x as usize][tile.y as usize] = Some(map_cache.tiles.len() as u16);
-      map_cache.tiles.push(tile);
-    }
-  }
-}
-
 fn main() {
   let map = get_map();
   
@@ -97,21 +114,15 @@ fn main() {
   }
   
   // Build validated map for I/O thread
-  let mut map_cache = Map { terrains: Vec::new(), tiles: Vec::new() };
-  let mut map_cache_indices: Box<[[Option<u16>; 256]; 256]> = Box::new([[None; 256]; 256]);
-  
-  
-  map_cache.terrains = terrains.clone();
+  let mut map_cache = MapCache::new();
+  map_cache.map.terrains = terrains.clone();
   
   for x in 0..256 {
     for y in 0..256 {
-      map_cache_indices[x][y] = match tiles[x][y] {
-        Some(tile) => {
-          map_cache.tiles.push(tile);
-          Some((map_cache.tiles.len() as u16) - 1)
-        },
-        None => None
-      };
+      match tiles[x][y] {
+        Some(tile) => map_cache.update_tile(tile),
+        None => {}
+      }
     }
   }
   
@@ -132,7 +143,7 @@ fn main() {
         // Keep update queue drained while looking for a connection, to prevent memory leaking during outages
         'drain: loop {
           match rx.try_recv() {
-            Ok(tile) => update_map_cache(tile, &mut map_cache, &mut map_cache_indices),
+            Ok(tile) => map_cache.update_tile(tile),
             Err(_) => break 'drain
           }
         }
@@ -150,7 +161,7 @@ fn main() {
       }
       
       // After connecting, the existing cache needs to be sent
-      let serialized = serde_json::to_string(&map_cache).unwrap();
+      let serialized = serde_json::to_string(&map_cache.map).unwrap();
       match thread_socket.write_all(serialized.as_bytes()) {
         Ok(_) => {},
         Err(err) => {
@@ -163,7 +174,7 @@ fn main() {
       'send: loop {
         let tile = rx.recv().unwrap();
         
-        update_map_cache(tile, &mut map_cache, &mut map_cache_indices);
+        map_cache.update_tile(tile);
         
         let serialized = serde_json::to_string(&tile).unwrap();
         
