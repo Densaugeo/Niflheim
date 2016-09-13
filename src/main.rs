@@ -72,6 +72,18 @@ fn get_map() -> Map {
   try_or_exit!(serde_json::from_str(s.as_str()), "Error parsing map file")
 }
 
+fn update_map_cache(tile: Tile, map_cache: &mut Map, map_cache_indices: &mut [[Option<u16>; 256]; 256]) -> () {
+  match map_cache_indices[tile.x as usize][tile.y as usize] {
+    Some(index) => {
+      map_cache.tiles[index as usize] = tile;
+    },
+    None => {
+      map_cache_indices[tile.x as usize][tile.y as usize] = Some(map_cache.tiles.len() as u16);
+      map_cache.tiles.push(tile);
+    }
+  }
+}
+
 fn main() {
   let map = get_map();
   
@@ -84,6 +96,24 @@ fn main() {
     }
   }
   
+  // Build validated map for I/O thread
+  let mut map_cache = Map { terrains: Vec::new(), tiles: Vec::new() };
+  let mut map_cache_indices: Box<[[Option<u16>; 256]; 256]> = Box::new([[None; 256]; 256]);
+  
+  
+  map_cache.terrains = terrains.clone();
+  
+  for x in 0..256 {
+    for y in 0..256 {
+      map_cache_indices[x][y] = match tiles[x][y] {
+        Some(tile) => {
+          map_cache.tiles.push(tile);
+          Some((map_cache.tiles.len() as u16) - 1)
+        },
+        None => None
+      };
+    }
+  }
   
   println!("A terrain: {:?}", terrains[0]);
   println!("A tile: {:?}", tiles[0][0]);
@@ -93,44 +123,60 @@ fn main() {
   
   let (tx, rx) = std::sync::mpsc::channel::<Tile>();
   
-  std::thread::spawn(move || {
+  try_or_exit!(std::thread::Builder::new().name("niflheim_io".into()).spawn(move || {
     let mut thread_socket: std::net::TcpStream;
     
-    loop {
-      loop {
+    'main: loop {
+      // Try to connect to server until it succeeds
+      'connect: loop {
         // Keep update queue drained while looking for a connection, to prevent memory leaking during outages
-        loop {
+        'drain: loop {
           match rx.try_recv() {
-            Ok(_) => {},
-            Err(_) => break
+            Ok(tile) => update_map_cache(tile, &mut map_cache, &mut map_cache_indices),
+            Err(_) => break 'drain
           }
         }
         
         match std::net::TcpStream::connect("127.0.0.1:3556") {
           Ok(val) => {
             thread_socket = val;
-            break;
+            break 'connect;
           },
           Err(err) => println!("Error connecting to relay: {}", err)
         }
         
+        // This is just a reconnection timeout, so the timing doesn't have to be precise
         std::thread::sleep(std::time::Duration::from_millis(1000));
       }
       
-      loop {
+      // After connecting, the existing cache needs to be sent
+      let serialized = serde_json::to_string(&map_cache).unwrap();
+      match thread_socket.write_all(serialized.as_bytes()) {
+        Ok(_) => {},
+        Err(err) => {
+          println!("Error sending to relay: {}", err);
+          // Actually getting this error would be very weird. Idk what to do here. The first send loop would probably error too anywy
+        }
+      }
+      
+      // Keep the server up to date with sim changes. The cache was already sent, so only updates need to be sent here
+      'send: loop {
         let tile = rx.recv().unwrap();
+        
+        update_map_cache(tile, &mut map_cache, &mut map_cache_indices);
+        
         let serialized = serde_json::to_string(&tile).unwrap();
         
         match thread_socket.write_all(serialized.as_bytes()) {
           Ok(_) => {},
           Err(err) => {
             println!("Error sending to relay: {}", err);
-            break;
+            break 'send;
           }
         }
       }
     }
-  });
+  }), "Error creating io thread:");
   
   let tick = schedule_recv::periodic_ms(1000);
   let mut rng = rand::thread_rng();
