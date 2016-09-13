@@ -4,6 +4,9 @@
 extern crate serde;
 extern crate serde_json;
 extern crate schedule_recv;
+extern crate rand;
+
+use rand::Rng;
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 struct ColorRGBA {
@@ -130,12 +133,22 @@ fn main() {
   });
   
   let tick = schedule_recv::periodic_ms(1000);
+  let mut rng = rand::thread_rng();
   
   loop {
     // These two operations can be .unwrapped, because they generally do not fail
     tick.recv().unwrap();
     
-    tx.send(tiles[0][0].unwrap());
+    // Make some kind of change to state
+    match tiles[2][2] {
+      Some(ref mut tile) => {
+        tile.h = rng.gen_range(0, 3);
+        tile.t = rng.gen_range(0, 3);
+      },
+      None => {}
+    }
+    
+    tx.send(tiles[2][2].unwrap());
   }
 }
 /*
