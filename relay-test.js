@@ -1,6 +1,7 @@
 process.title = 'nh-hex-relay';
 
 var net = require('net');
+var json_string_splitter = require('json-string-splitter');
 
 var sim_listener = net.createServer();
 
@@ -14,12 +15,21 @@ sim_listener.on('listening', function() {
   console.log(`Listening for sim servers on ${url}`);
 });
 
+
 sim_listener.on('connection', function(socket) {
   var origin = `tcp://${socket.address().address}:${socket.address().port}/`;
   console.log(`Received connection from ${origin}`);
   
+  var remainder = '';
+  
   socket.on('data', function(buffer) {
-    console.log(`Received data: ${buffer}`);
+    var result = json_string_splitter(remainder + buffer.toString('utf8'));
+    
+    result.jsons.forEach(v => {
+      console.log(`Found a json string: ${v}`);
+    });
+    
+    remainder = result.remainder;
   });
   
   socket.on('close', () => console.log(`Connection from ${origin}/ was closed`));

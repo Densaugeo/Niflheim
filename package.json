@@ -45,6 +45,7 @@
     "hematite": "git://github.com/Densaugeo/Hematite.git#1.1.0",
     "hermes": "git://github.com/Densaugeo/Hermes.git#0.0.5",
     "inert": "~4.0.1",
+    "json-string-splitter": "^1.0.0",
     "moment": "~2.14.1",
     "persistent-ws": "~1.0.4",
     "struct-fu": "~1.0.0",
