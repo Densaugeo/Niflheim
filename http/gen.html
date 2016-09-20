@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Babylon - Basic scene</title>
+
+<style>
+html, body {
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#renderCanvas {
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+</style>
+
+<script type="text/javascript" src="libs.pkgd.js"></script>
+<script type="text/javascript" src="babylon.Densaugeo.js"></script>
+
+</head>
+
+<body>
+<canvas id="renderCanvas"></canvas>
+</body>
+
+<script type="text/javascript">
+var MeshForge = {};
+
+MeshForge.HexGeometry = function(name, scene) {
+  var indices = [];
+  var positions = [];
+  var normals = [];
+  var uvs = [];
+  
+  var r_o = 2/Math.sqrt(3);
+  
+  for(var i = 0; i < 6; ++i) {
+    var θ = Math.PI/6 + i*Math.PI/3;
+    
+    // Not sure about UVs
+    positions.push(-r_o*Math.cos(θ), r_o*Math.sin(θ), 1);
+    normals.push(-Math.cos(θ)*2/Math.sqrt(5), Math.sin(θ)*2/Math.sqrt(5), 1/Math.sqrt(5));
+    uvs.push(0.5 - 0.5*Math.cos(θ), 0.5 + 0.5*Math.sin(θ));
+  }
+  
+  // Make a second hexagon, with normals pointed down
+  for(var i = 0; i < 6; ++i) {
+    var θ = Math.PI/6 + i*Math.PI/3;
+    
+    // Not sure about UVs
+    positions.push(-r_o*Math.cos(θ), r_o*Math.sin(θ), 0);
+    normals.push(-Math.cos(θ)*2/Math.sqrt(5), Math.sin(θ)*2/Math.sqrt(5), -1/Math.sqrt(5));
+    uvs.push(0.5 - 0.5*Math.cos(θ), 0.5 + 0.5*Math.sin(θ));
+  }
+  
+  // Top
+  indices.push(0, 1, 2);
+  indices.push(0, 2, 3);
+  indices.push(0, 3, 4);
+  indices.push(0, 4, 5);
+  
+  // Walls
+  for(var i = 0; i < 6; ++i) {
+    var next = (i + 1) % 6;
+    indices.push(i, i + 6, next + 6);
+    indices.push(i, next + 6, next);
+  }
+  
+  // Bottom
+  indices.push(6, 8, 7);
+  indices.push(6, 9, 8);
+  indices.push(6, 10, 9);
+  indices.push(6, 11, 10);
+  
+  // Sides
+  BABYLON.VertexData._ComputeSides(BABYLON.Mesh.FRONTSIDE, positions, indices, normals, uvs);
+  
+  var vertexData = new BABYLON.VertexData();
+  
+  vertexData.indices = indices;
+  vertexData.positions = positions;
+  vertexData.normals = normals;
+  vertexData.uvs = uvs;
+  
+//   return new BABYLON.Geometry(name, scene, vertexData);
+  return vertexData;
+}
+
+MeshForge.HexMesh = function(name, scene) {
+  var result_geometry = MeshForge.HexGeometry(name, scene);
+  
+  var result = new BABYLON.Mesh(name, scene);
+  
+  result_geometry.applyToMesh(result);
+  
+  result.subMeshes = [];
+  result.subMeshes.push(new BABYLON.SubMesh(0, 0, 36, 12, 48, result));
+  result.subMeshes.push(new BABYLON.SubMesh(1, 0, 18, 0, 12, result));
+  
+  return result;
+}
+
+
+
+
+// Get the canvas element from our HTML below
+var canvas = document.querySelector("#renderCanvas");
+
+// Load the BABYLON 3D engine
+var engine = new BABYLON.Engine(canvas, true);
+
+var scene = new BABYLON.Scene(engine);
+
+// This creates and positions a free camera
+var camera = new BABYLON.Densaugeo.FlyingCamera("camera1", BABYLON.Matrix.FromArray([-1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, -2, -10, 4, 1]), scene, canvas);
+
+// Change the scene background color to green.
+scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
+
+scene.ambientColor = BABYLON.Color3.FromArray([0.25, 0.25, 0.25]);
+
+var directionalLight = new BABYLON.DirectionalLight('light2', new BABYLON.Vector3(7.1, -2.75, -10), scene);
+directionalLight.intensity = 0.5;
+
+
+
+
+
+
+
+
+var grid = new function() {
+  // Material for the bases and walls of hexes
+  this.baseMaterial = new BABYLON.StandardMaterial('dark_gray', scene);
+  this.baseMaterial.ambientColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+  this.baseMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+  this.baseMaterial.specularColor = BABYLON.Color3.Black();
+  
+  // Material for all water in the grid
+  this.waterMaterial = new BABYLON.StandardMaterial('water', scene);
+  this.waterMaterial.ambientColor = new BABYLON.Color3(0, 1, 1);
+  this.waterMaterial.diffuseColor = new BABYLON.Color3(0, 1, 1);
+  this.waterMaterial.alpha = 0.7;
+  
+  // Mesh for water surface
+  // Radius is circumscribed radius
+  this.waterMesh = BABYLON.MeshBuilder.CreateDisc('', { radius: 2/Math.sqrt(3), tessellation: 6, sideOrientation: BABYLON.Mesh.DOUBLESIDE}, scene);
+  this.waterMesh.rotation.z = Math.PI/6;
+  
+  // Flip so front side faces upward
+  this.waterMesh.scaling.z = -1;
+  this.waterMesh.bakeCurrentTransformIntoVertices();
+  
+  // First waterMesh isn't displayed, only used for creating instances
+  this.waterMesh.setEnabled(0);
+  
+  this.waterMesh.material = this.waterMaterial;
+  
+  // Holds all of the terrain types in use on this grid
+  this.terrains = [];
+  
+  this.setTerrain = function(i, terrain) {
+    if(this.terrains[i] === undefined) {
+      this.terrains[i] = new Terrain(terrain);
+    } else {
+      this.terrains[i].copyFrom(terrain);
+    }
+  }
+  
+  this.tiles = [];
+  
+  for(var x = 0; x < 256; ++x) {
+    this.tiles[x] = [];
+    
+    for(var y = 0; y < 256; ++y) {
+      this.tiles[x][y] = null;
+    }
+  }
+}
+
+var Terrain = function(options) {
+  this.color = new ColorRGBA();
+  
+  // Terrain's associated Babylon Mesh
+  this._Mesh = new MeshForge.HexMesh(this.name, scene);
+  
+  Object.defineProperties(this, {
+    name: {
+      enumerable: true,
+      get: function() { return this._Mesh.name },
+      set: function(v) { this._Mesh.name = v }
+    },
+  });
+  
+  this.copyFrom(options || {});
+  
+  // Set up Mesh
+  this._Mesh.convertToFlatShadedMesh();
+  
+  var top_color = new BABYLON.StandardMaterial('', scene);
+  top_color.ambientColor = this.color._Color4;
+  top_color.diffuseColor = this.color._Color4;
+  top_color.specularColor = new BABYLON.Color3.Black();
+  
+  this._Mesh.material = new BABYLON.MultiMaterial('', scene);
+  this._Mesh.material.subMaterials.push(grid.baseMaterial, top_color);
+  
+  // Terrain base meshes are not displayed in Babylon, only their instances for each tile are displayed
+  this._Mesh.setEnabled(0);
+}
+
+Terrain.prototype.copyFrom = function(options) {
+  this.name = options.name || '';
+  
+  this.color.copyFrom(options.color || {});
+}
+
+var ColorRGBA = function(options) {
+  // Represetation of this object as a Babylon Color4
+  this._Color4 = new BABYLON.Color4();
+  
+  Object.defineProperties(this, {
+    r: {
+      enumerable: true,
+      get: function() { return Math.round(this._Color4.r*255) },
+      set: function(v) { this._Color4.r = v/255 }
+    },
+    g: {
+      enumerable: true,
+      get: function() { return Math.round(this._Color4.g*255) },
+      set: function(v) { this._Color4.g = v/255 }
+    },
+    b: {
+      enumerable: true,
+      get: function() { return Math.round(this._Color4.b*255) },
+      set: function(v) { this._Color4.b = v/255 }
+    },
+    a: {
+      enumerable: true,
+      get: function() { return Math.round(this._Color4.a*255) },
+      set: function(v) { this._Color4.a = v/255 }
+    },
+  });
+  
+  this.copyFrom(options || {});
+}
+
+ColorRGBA.prototype.copyFrom = function(options) {
+  this.r = options.r || 0;
+  this.g = options.g || 0;
+  this.b = options.b || 0;
+  this.a = options.a === undefined ? 255 : options.a;
+}
+
+var Tile = function(options) {
+  // Dummy placeholder
+  this._terrainInstance = {
+    dispose: function() {}
+  }
+  
+  this._waterMesh = grid.waterMesh.createInstance('');
+  this._waterMesh.position.x = -2*options.x + options.y;
+  this._waterMesh.position.y = Math.sqrt(3)*options.y;
+  
+  var t;
+  
+  Object.defineProperties(this, {
+    t: {
+      enumerable: true,
+      get: function() { return t },
+      set: function(v) {
+        this._terrainInstance.dispose();
+        
+        this._terrainInstance = grid.terrains[v]._Mesh.createInstance('');
+        
+        this._terrainInstance.position.x = -2*options.x + options.y;
+        this._terrainInstance.position.y = Math.sqrt(3)*options.y;
+        this.h = this.h;
+        
+        t = v;
+      }
+    },
+    h: {
+      enumerable: true,
+      get: function() { return Math.round(4*this._terrainInstance.scaling.z) },
+      set: function(v) { this._terrainInstance.scaling.z = 0.25*v }
+    },
+    w: {
+      enumerable: true,
+      get: function() { return 4*this._waterMesh.position.z },
+      set: function(v) { this._waterMesh.position.z = 0.25*v }
+    },
+  });
+  
+  this.copyFrom(options || {});
+}
+
+grid.smoothWater = function(x, y) {
+  var center = grid[x][y];
+  
+  var neighbors = [
+    grid[x + 1] && grid[x + 1][y    ] || null,
+    grid[x + 1] && grid[x + 1][y + 1] || null,
+    grid[x    ] && grid[x    ][y + 1] || null,
+    grid[x - 1] && grid[x - 1][y    ] || null,
+    grid[x - 1] && grid[x - 1][y - 1] || null,
+    grid[x    ] && grid[x    ][y - 1] || null
+  ]
+  
+  neighbors.forEach(function(v, i) {
+    
+  });
+}
+
+Tile.prototype.copyFrom = function(options) {
+  this.t = options.t || 0;
+  this.h = options.h || 1;
+  this.w = options.w || -0.1;
+}
+
+grid.setCell = function(cell_data) {
+  var x = cell_data.x, y = cell_data.y;
+  
+  if(grid.tiles[x][y] == undefined) {
+    grid.tiles[x][y] = new Tile(cell_data);
+  } else {
+    grid.tiles[x][y].copyFrom(cell_data);
+  }
+}
+
+var lamp = {};
+
+lamp.color = new BABYLON.Color3(0, 0, 0);
+
+lamp.material = new BABYLON.StandardMaterial('lamp', scene);
+lamp.material.ambientColor = BABYLON.Color3.Black();
+lamp.material.diffuseColor = BABYLON.Color3.Black();
+// lamp.material.specularColor = BABYLON.Color3.Black();
+lamp.material.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+
+lamp.mesh = BABYLON.Mesh.CreateSphere('lamp', 8, 1, scene);
+lamp.mesh.material = lamp.material;
+lamp.mesh.position.x = -2;
+lamp.mesh.position.y = 2*Math.sqrt(3);
+lamp.mesh.position.z = 2;
+
+lamp.light = new BABYLON.PointLight('light2', new BABYLON.Vector3(-2, 2*Math.sqrt(3), 2), scene);
+lamp.light.diffuse = new BABYLON.Color3(0, 0, 0);
+lamp.light.specular = new BABYLON.Color3(0, 0, 0);
+
+// Register a render loop to repeatedly render the scene
+engine.runRenderLoop(function () {
+  scene.render();
+});
+
+// var blurWidth = 1.0;
+// var postProcess2 = new BABYLON.BlurPostProcess("Horizontal blur", new BABYLON.Vector2(1.0, 0), blurWidth, 0.25, camera);
+// var postProcess3 = new BABYLON.BlurPostProcess("Vertical blur", new BABYLON.Vector2(0, 1.0), blurWidth, 0.25, camera);
+
+// Watch for browser/canvas resize events
+window.addEventListener("resize", function () {
+  engine.resize();
+});
+
+////////////////////
+// WS to Niflheim //
+////////////////////
+
+
+
+var websocket = new PersistentWS(window.location.protocol.replace('http', 'ws') + '//' + window.location.hostname + ':8000', undefined, {verbose: true});
+
+websocket.addEventListener('message', function(e) {
+  var message;
+  
+  try {
+    message = JSON.parse(e.data);
+  }
+  catch(err) {
+    console.log('Bad JSON from server');
+  }
+  
+  if(message.terrains) {
+    message.terrains.forEach((v, i) => grid.setTerrain(i, v));
+  }
+  
+  if(message.tiles) {
+    message.tiles.forEach(function(v) {
+      grid.setCell(v);
+    });
+  }
+  
+  if(message.x !== undefined) {
+    grid.setCell(message);
+  }
+});
+
+////////////
+// Selene //
+////////////
+/*
+var mqtt_to_server = mqtt.connect(window.location.protocol.replace('http', 'ws') + '//' + window.location.hostname + ':8883');
+var subscriptions = ['Se/4/pin/+'];
+
+mqtt_to_server.on('connect', function() {
+  subscriptions.forEach(function(v) {
+    mqtt_to_server.subscribe(v);
+  });
+});
+
+mqtt_to_server.on('message', function(topic, message) {
+  var event = SeleneParser.Packet.fromMqtt(topic, message);
+  
+  mqtt_to_server.emit(event.type, event);
+});
+
+mqtt_to_server.on('pin', function(e) {
+  switch(e.pin) {
+    case 0:
+      lamp.light.diffuse.r = e.value/255;
+      lamp.light.specular.r = e.value/255;
+      lamp.material.emissiveColor.r = (1 + e.value/255)/2;
+      break;
+    case 1:
+      lamp.light.diffuse.g = e.value/255;
+      lamp.light.specular.g = e.value/255;
+      lamp.material.emissiveColor.g = (1 + e.value/255)/2;
+      break;
+    case 2:
+      lamp.light.diffuse.b = e.value/255;
+      lamp.light.specular.b = e.value/255;
+      lamp.material.emissiveColor.b = (1 + e.value/255)/2;
+      break;
+  }
+//   panels[e.address].pins[e.pin].value = e.value;
+});
+*/
+</script>
+
+</html>
