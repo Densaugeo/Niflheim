@@ -199,13 +199,62 @@ fn main() {
     // Make some kind of change to state
     match tiles[2][2] {
       Some(ref mut tile) => {
-        tile.h = rng.gen_range(0, 3);
+        tile.h = rng.gen_range(2, 4);
         tile.t = rng.gen_range(0, 3);
       },
       None => {}
     }
     
+    match tiles[0][2] {
+      Some(ref mut tile) => {
+        tile.w = 1.7 + 0.1*(rng.gen_range(0, 4) as f32);
+      },
+      None => {}
+    }
+    
+    match tiles[1][2] {
+      Some(ref mut tile) => {
+        tile.w = 1.7 + 0.1*(rng.gen_range(0, 4) as f32);
+      },
+      None => {}
+    }
+    
+    match tiles[1][1] {
+      Some(ref mut tile) => {
+        tile.w = 1.7 + 0.1*(rng.gen_range(0, 4) as f32);
+      },
+      None => {}
+    }
+    
+    match tiles[2][1] {
+      Some(ref mut tile) => {
+        tile.w = 1.7 + 0.1*(rng.gen_range(0, 4) as f32);
+      },
+      None => {}
+    }
+    
+    match tiles[3][1] {
+      Some(ref mut tile) => {
+        tile.w = 1.7 + 0.1*(rng.gen_range(0, 4) as f32);
+      },
+      None => {}
+    }
+    
+    match tiles[4][1] {
+      Some(ref mut tile) => {
+        tile.w = 1.7 + 0.1*(rng.gen_range(0, 4) as f32);
+      },
+      None => {}
+    }
+    
     tx.send(tiles[2][2].unwrap());
+    
+    tx.send(tiles[0][2].unwrap());
+    tx.send(tiles[1][2].unwrap());
+    tx.send(tiles[1][1].unwrap());
+    tx.send(tiles[2][1].unwrap());
+    tx.send(tiles[3][1].unwrap());
+    tx.send(tiles[4][1].unwrap());
   }
 }
 /*
