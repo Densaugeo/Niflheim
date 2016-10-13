@@ -107,7 +107,45 @@ MeshForge.HexMesh = function(name, scene) {
   return result;
 }
 
-
+MeshForge.Wall = function(name, scene) {
+  var indices = [];
+  var positions = [];
+  var normals = [];
+  var uvs = [];
+  
+  positions.push(0, -0.5, 0);
+  positions.push(0, 0.5, 0);
+  positions.push(0, 0.5, 1);
+  positions.push(0, -0.5, 1);
+  normals.push(-1, 0, 0);
+  normals.push(-1, 0, 0);
+  normals.push(-1, 0, 0);
+  normals.push(-1, 0, 0);
+  uvs.push(0, 0);
+  uvs.push(0, 1);
+  uvs.push(1, 1);
+  uvs.push(1, 0);
+  
+  // Tris
+  indices.push(0, 1, 2);
+  indices.push(0, 2, 3);
+  
+  // Sides
+  BABYLON.VertexData._ComputeSides(BABYLON.Mesh.FRONTSIDE, positions, indices, normals, uvs);
+  
+  var vertexData = new BABYLON.VertexData();
+  
+  vertexData.indices = indices;
+  vertexData.positions = positions;
+  vertexData.normals = normals;
+  vertexData.uvs = uvs;
+  
+  var mesh = new BABYLON.Mesh(name, scene);
+  
+  vertexData.applyToMesh(mesh);
+  
+  return mesh;
+}
 
 
 // Get the canvas element from our HTML below
@@ -214,6 +252,8 @@ var Terrain = function(options) {
   
   // Terrain base meshes are not displayed in Babylon, only their instances for each tile are displayed
   this._Mesh.setEnabled(0);
+  
+  this._Material = this._Mesh.material;
 }
 
 Terrain.prototype.copyFrom = function(options) {
@@ -260,14 +300,17 @@ ColorRGBA.prototype.copyFrom = function(options) {
 }
 
 var Tile = function(options) {
-  // Dummy placeholder
-  this._terrainInstance = {
-    dispose: function() {}
-  }
+  this._holder = new BABYLON.Mesh('', scene);
+  this._holder.position.x = -2*(options.x || 0) + (options.y || 0);
+  this._holder.position.y = Math.sqrt(3)*(options.y || 0);
+  this._holder.scaling.z = 0.25;
+  
+  this._terrainInstance = new MeshForge.HexMesh('', scene);
+  this._terrainInstance.convertToFlatShadedMesh();
+  this._terrainInstance.parent = this._holder;
   
   this._waterMesh = grid.waterMesh.createInstance('');
-  this._waterMesh.position.x = -2*options.x + options.y;
-  this._waterMesh.position.y = Math.sqrt(3)*options.y;
+  this._waterMesh.parent = this._holder;
   
   var t;
   
@@ -276,46 +319,73 @@ var Tile = function(options) {
       enumerable: true,
       get: function() { return t },
       set: function(v) {
-        this._terrainInstance.dispose();
-        
-        this._terrainInstance = grid.terrains[v]._Mesh.createInstance('');
-        
-        this._terrainInstance.position.x = -2*options.x + options.y;
-        this._terrainInstance.position.y = Math.sqrt(3)*options.y;
-        this.h = this.h;
+        this._terrainInstance.material = grid.terrains[v]._Material;
         
         t = v;
       }
     },
     h: {
       enumerable: true,
-      get: function() { return Math.round(4*this._terrainInstance.scaling.z) },
-      set: function(v) { this._terrainInstance.scaling.z = 0.25*v }
+      get: function() { return this._terrainInstance.scaling.z },
+      set: function(v) { this._terrainInstance.scaling.z = v }
     },
     w: {
       enumerable: true,
-      get: function() { return 4*this._waterMesh.position.z },
-      set: function(v) { this._waterMesh.position.z = 0.25*v }
+      get: function() { return this._waterMesh.position.z },
+      set: function(v) { this._waterMesh.position.z = v }
     },
   });
   
   this.copyFrom(options || {});
+  
+  //if(options.x === 0 && options.y === 0) {
+    this._waterWalls = [];
+    
+    for(var i = 0; i < 6; ++i) {
+      var θ = Math.PI/3*i;
+      
+      this._waterWalls[i] = MeshForge.Wall('', scene);
+      this._waterWalls[i].parent = this._holder;
+      this._waterWalls[i].position.x = -Math.cos(θ);
+      this._waterWalls[i].position.y = Math.sin(θ);
+      this._waterWalls[i].rotation.z = -θ;
+      this._waterWalls[i].scaling.y = 2/Math.sqrt(3);
+      this._waterWalls[i].material = grid.waterMaterial;
+      this._waterWalls[i].setEnabled(0);
+    }
+//   }
+}
+
+var calculateWall = function(a, b, direction) {
+  if(a.w > a.h && a.w > Math.max(b.w, b.h)) {
+    a._waterWalls[direction].position.z = Math.max(b.h, b.w, a.h);
+    a._waterWalls[direction].scaling.z = a.w - Math.max(b.h, b.w, a.h);
+    a._waterWalls[direction].setEnabled(1);
+  } else {
+    a._waterWalls[direction].setEnabled(0);
+  }
 }
 
 grid.smoothWater = function(x, y) {
-  var center = grid[x][y];
+  var center = grid.tiles[x][y];
   
   var neighbors = [
-    grid[x + 1] && grid[x + 1][y    ] || null,
-    grid[x + 1] && grid[x + 1][y + 1] || null,
-    grid[x    ] && grid[x    ][y + 1] || null,
-    grid[x - 1] && grid[x - 1][y    ] || null,
-    grid[x - 1] && grid[x - 1][y - 1] || null,
-    grid[x    ] && grid[x    ][y - 1] || null
+    grid.tiles[x + 1] && grid.tiles[x + 1][y    ] || null,
+    grid.tiles[x + 1] && grid.tiles[x + 1][y + 1] || null,
+    grid.tiles[x    ] && grid.tiles[x    ][y + 1] || null,
+    grid.tiles[x - 1] && grid.tiles[x - 1][y    ] || null,
+    grid.tiles[x - 1] && grid.tiles[x - 1][y - 1] || null,
+    grid.tiles[x    ] && grid.tiles[x    ][y - 1] || null
   ]
   
-  neighbors.forEach(function(v, i) {
+  neighbors.forEach(function(neighbor, i) {
+    if(neighbor === null) {
+      center._waterWalls[i].setEnabled(0);
+      return;
+    }
     
+    calculateWall(center, neighbor, i);
+    calculateWall(neighbor, center, (i + 3) % 6);
   });
 }
 
@@ -333,6 +403,8 @@ grid.setCell = function(cell_data) {
   } else {
     grid.tiles[x][y].copyFrom(cell_data);
   }
+  
+  grid.smoothWater(x, y);
 }
 
 var lamp = {};
